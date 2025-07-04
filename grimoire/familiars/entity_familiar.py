@@ -20,8 +20,11 @@ class EntityFamiliar(_base_cls()):
     def __init__(self, name: str, entity_data: Optional[Dict[str, Any]] = None, *, true_name: Optional[str] = None):
         super().__init__(name, "Entity", capabilities={}, true_name=true_name)
         self.category = FamiliarType.ENTITY
-        # Store arbitrary entity properties.
-        self.properties: Dict[str, Any] = entity_data.copy() if entity_data else {}
+        from grimoire.game.properties import EntityProperties
+        self.properties_container = EntityProperties()
+        if entity_data:
+            for k, v in entity_data.items():
+                self.properties_container.add(k, v)
 
         # Standard sockets
         self.add_socket("property_input", direction="input")
@@ -36,15 +39,18 @@ class EntityFamiliar(_base_cls()):
 
     # Example helper APIs
     def update_property(self, key: str, value: Any):
-        self.properties[key] = value
+        try:
+            self.properties_container.set_base(key, value)
+        except KeyError:
+            self.properties_container.add(key, value)
         # broadcast updated property
         self.send_to_socket("property_output", {key: value})
 
     def get_property(self, key: str, default: Any = None) -> Any:
-        return self.properties.get(key, default)
+        return self.properties_container.get(key, default)
 
     # Override inquire to expose entity props
     def inquire(self, query: str):
         if query.startswith("prop:"):
-            return self.properties.get(query[5:])
+            return self.properties_container.get(query[5:])
         return super().inquire(query)

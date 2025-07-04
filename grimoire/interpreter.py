@@ -2071,6 +2071,13 @@ class GrimoireInterpreter:
             fam.plan()  # type: ignore[attr-defined]
             return "ai updated"
 
+        from grimoire.game.interactions import apply_damage as _apply_damage
+        def apply_damage_builtin(interpreter, arguments):
+            if len(arguments) != 2:
+                raise RuntimeError("apply_damage expects (entity_familiar, amount)")
+            fam, amt = arguments
+            return _apply_damage(fam, float(amt))
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2107,6 +2114,7 @@ class GrimoireInterpreter:
         self.globals.define("add_goal", add_goal_builtin)
         self.globals.define("add_action", add_action_builtin)
         self.globals.define("update_ai", update_ai_builtin)
+        self.globals.define("apply_damage", apply_damage_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
