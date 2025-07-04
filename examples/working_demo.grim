@@ -1,0 +1,62 @@
+# Grimoire Programming Language - Working Demo
+# This demonstrates the core magical programming features
+
+# Basic variable binding and output
+bind message = $SCROLL(🔮 Welcome to Grimoire - The Magical Programming Language! 🔮)
+scry message
+
+# Mathematical operations with magical syntax  
+bind power = 10
+bind enhanced_power = power multiplied by 3 added to 5
+scry $SCROLL(Enhanced power: ) added to enhanced_power
+
+# Function definitions (rituals) and calls
+ritual calculate_spell_damage(base_damage, modifier):
+    bind total_damage = base_damage multiplied by modifier
+    scry $SCROLL(Spell deals ) added to total_damage added to $SCROLL( damage!)
+    return total_damage
+
+bind damage = calculate_spell_damage upon 20, 2.5
+scry $SCROLL(Total damage dealt: ) added to damage
+
+# Conditional magic with enchanted conditions
+bind mana = 75
+if enchanted mana is greater than 50:
+    scry $SCROLL(✨ You have enough mana to cast powerful spells!)
+else cursed:
+    scry $SCROLL(💀 Your mana is too low for magic...)
+
+# Multi-condition spells
+bind health = 85
+bind level = 12
+
+if enchanted health is greater than 80 and level is not lesser than 10:
+    scry $SCROLL(🏆 You are a powerful and healthy mage!)
+    if enchanted level is greater than 15:
+        scry $SCROLL(🌟 Master level achieved!)
+    else cursed:
+        scry $SCROLL(📖 Still learning the arcane arts...)
+else cursed:
+    scry $SCROLL(⚡ Train harder to become a true wizard!)
+
+# Demonstrating magical comparison operators
+bind first_value = 100
+bind second_value = 50
+
+if enchanted first_value is not equal to second_value:
+    scry $SCROLL(🔍 Values are different as expected)
+
+if enchanted first_value is not lesser than second_value:
+    scry $SCROLL(📈 First value is indeed greater than or equal to second)
+
+# Nested function calls and expressions
+ritual announce_spell(spell_name, caster_name):
+    scry $SCROLL(🪄 ) added to caster_name added to $SCROLL( casts ") added to spell_name added to $SCROLL("!)
+
+announce_spell upon $SCROLL(Lightning Bolt), $SCROLL(Gandalf)
+announce_spell upon $SCROLL(Healing Light), $SCROLL(Elara)
+
+# Final magical message
+scry $SCROLL()
+scry $SCROLL(✨ The Grimoire language demonstration is complete! ✨)
+scry $SCROLL(🧙‍♂️ May your code be as elegant as your spells! 🧙‍♀️)

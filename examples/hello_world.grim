@@ -1,0 +1,11 @@
+# Hello World in Grimoire
+# A simple example demonstrating basic Grimoire syntax
+
+ritual main():
+    scry $SCROLL(Hello, Grimoire World!)
+    
+    bind message = $SCROLL(Welcome to the realm of magical programming!)
+    scry message
+
+# Call the main ritual
+main upon

@@ -1,0 +1,69 @@
+# Grimoire Programming Language - Simple Demo
+# Showcasing magical programming without type issues
+
+# Basic magical greetings
+scry $SCROLL(🔮 Welcome to Grimoire - The Magical Programming Language! 🔮)
+scry $SCROLL()
+
+# Variable binding with magical terminology
+bind wizard_name = $SCROLL(Merlin)
+bind spell_name = $SCROLL(Lightning Bolt)
+
+scry $SCROLL(The great wizard ) added to wizard_name added to $SCROLL( prepares a spell...)
+scry $SCROLL()
+
+# Ritual (function) definitions and magical invocations
+ritual cast_spell(caster, spell):
+    scry $SCROLL(✨ ) added to caster added to $SCROLL( raises their staff...)
+    scry $SCROLL(🌟 *) added to spell added to $SCROLL(* crackles through the air!)
+    scry $SCROLL(💥 The spell is cast successfully!)
+
+# Invoke the ritual with magical syntax
+cast_spell upon wizard_name, spell_name
+scry $SCROLL()
+
+# Conditional magic with enchanted expressions
+bind mana = 85
+bind required_mana = 50
+
+scry $SCROLL(🔋 Checking mana levels...)
+if enchanted mana is greater than required_mana:
+    scry $SCROLL(✅ You have sufficient mana for powerful magic!)
+    scry $SCROLL(🪄 Casting enhanced spells...)
+else cursed:
+    scry $SCROLL(❌ Insufficient mana for spellcasting)
+    scry $SCROLL(🧘 Meditate to restore your magical energy)
+
+scry $SCROLL()
+
+# Multi-layered magical conditions
+bind experience_level = 15
+bind minimum_level = 10
+
+if enchanted experience_level is not lesser than minimum_level:
+    scry $SCROLL(🎓 You are an experienced mage!)
+    
+    if enchanted experience_level is greater than 20:
+        scry $SCROLL(🏆 Master Wizard status achieved!)
+    else cursed:
+        scry $SCROLL(📚 Continue studying the arcane arts)
+else cursed:
+    scry $SCROLL(🔰 You are still an apprentice wizard)
+
+scry $SCROLL()
+
+# Demonstrating magical logical operators
+bind has_spellbook = $SCROLL(yes)
+bind knows_incantation = $SCROLL(yes)
+
+# Using magical 'and' logic
+if enchanted has_spellbook is equal to $SCROLL(yes) and knows_incantation is equal to $SCROLL(yes):
+    scry $SCROLL(📖 All requirements met for advanced spellcasting!)
+else cursed:
+    scry $SCROLL(📝 Gather your magical components first)
+
+# Final magical flourish
+scry $SCROLL()
+scry $SCROLL(✨ ═══════════════════════════════════════ ✨)
+scry $SCROLL(🧙‍♂️ Grimoire Language Demo Complete! 🧙‍♀️)
+scry $SCROLL(✨ ═══════════════════════════════════════ ✨)

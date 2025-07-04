@@ -1,0 +1,88 @@
+# Wizard Battle Example
+# Demonstrates artifacts, rituals, and magical combat
+
+artifact Wizard:
+    essence name
+    essence health = 100
+    essence mana = 50
+    essence power = 10
+    
+    ritual invoke(wizard_name, initial_power):
+        bind self.name = wizard_name
+        bind self.power = initial_power
+        scry $SCROLL(The wizard ) added to self.name added to $SCROLL( enters the arena!)
+    
+    ritual cast_fireball(target):
+        if enchanted self.mana is not lesser than 15:
+            bind damage = self.power multiplied by 2
+            bind self.mana = self.mana subtracted from 15
+            scry self.name added to $SCROLL( casts FIREBALL at ) added to target.name
+            target.take_damage upon damage
+        else cursed:
+            scry self.name added to $SCROLL( doesn't have enough mana for fireball!)
+    
+    ritual cast_heal():
+        if enchanted self.mana is not lesser than 10:
+            bind healing = 25
+            bind self.health = self.health added to healing
+            bind self.mana = self.mana subtracted from 10
+            scry self.name added to $SCROLL( heals for ) added to healing added to $SCROLL( health!)
+        else cursed:
+            scry self.name added to $SCROLL( doesn't have enough mana to heal!)
+    
+    ritual take_damage(damage):
+        bind self.health = self.health subtracted from damage
+        scry self.name added to $SCROLL( takes ) added to damage added to $SCROLL( damage!)
+        
+        if enchanted self.health is not greater than 0:
+            scry self.name added to $SCROLL( has fallen in battle!)
+    
+    ritual is_alive():
+        return self.health is greater than 0
+    
+    ritual status():
+        scry self.name added to $SCROLL( - Health: ) added to self.health added to $SCROLL(, Mana: ) added to self.mana
+
+ritual battle_simulation():
+    scry $SCROLL(=== WIZARD BATTLE ARENA ===)
+    
+    # Conjure two wizards
+    bind gandalf = conjure Wizard upon $SCROLL(Gandalf), 15
+    bind saruman = conjure Wizard upon $SCROLL(Saruman), 12
+    
+    scry $SCROLL()
+    gandalf.status upon
+    saruman.status upon
+    scry $SCROLL()
+    
+    # Round 1
+    scry $SCROLL(--- Round 1 ----)
+    gandalf.cast_fireball upon saruman
+    saruman.cast_fireball upon gandalf
+    
+    scry $SCROLL()
+    gandalf.status upon
+    saruman.status upon
+    scry $SCROLL()
+    
+    # Round 2
+    scry $SCROLL(--- Round 2 ----)
+    gandalf.cast_heal upon
+    saruman.cast_fireball upon gandalf
+    
+    scry $SCROLL()
+    gandalf.status upon
+    saruman.status upon
+    scry $SCROLL()
+    
+    # Determine winner
+    if enchanted gandalf.health is greater than saruman.health:
+        scry $SCROLL(Gandalf emerges victorious!)
+    else cursed:
+        if enchanted saruman.health is greater than gandalf.health:
+            scry $SCROLL(Saruman claims victory!)
+        else cursed:
+            scry $SCROLL(The battle ends in a draw!)
+
+# Start the simulation
+battle_simulation upon
