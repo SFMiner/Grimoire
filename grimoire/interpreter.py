@@ -20,6 +20,12 @@ from .parser import (
     RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
     PlaneStatement, EffectStatement, CommandStatement
 )
+from .ai_system import (
+    WorldModel, AgentWorldView, Entity, DecisionEngine, GoalEvaluator,
+    ExperienceMemory, Action, UtilityFunction,
+    create_archon_actions, create_spirit_actions, create_familiar_actions,
+    create_utility_functions_for_agent
+)
 
 
 # =============================================================================
@@ -608,7 +614,7 @@ class InteractionMatrix:
 class GrimoireArchon(GoalSeeker):
     """Strategic-level AI agent that manages multiple spirits."""
     
-    def __init__(self, name: str, domain: str):
+    def __init__(self, name: str, domain: str, world_model: Optional[WorldModel] = None):
         super().__init__()
         self.name = name
         self.domain = domain
@@ -618,8 +624,27 @@ class GrimoireArchon(GoalSeeker):
         self.methods: Dict[str, GrimoireFunction] = {}
         self.state = "active"
         
-        # Initialize domain-specific goals
+        # Enhanced AI Components
+        self.decision_engine = DecisionEngine(f"archon_{name}")
+        self.goal_evaluator = GoalEvaluator()
+        self.world_model = world_model
+        self.world_view: Optional[AgentWorldView] = None
+        self.agent_state = {
+            "controlled_territory": 10,
+            "total_resources": 160,
+            "military_strength": 20,
+            "defensive_strength": 15,
+            "ally_count": 0,
+            "reputation": 0,
+            "diplomatic_power": 25,
+            "spirit_count": 0,
+            "economic_efficiency": 0.5,
+            "resource_production_rate": 5
+        }
+        
+        # Initialize domain-specific goals and AI system
         self.initialize_strategic_goals()
+        self.initialize_ai_system()
     
     def initialize_strategic_goals(self):
         """Initialize goals based on domain."""
@@ -640,6 +665,29 @@ class GrimoireArchon(GoalSeeker):
             self.add_goal("survival", 10, 1.0, 0.8)
             self.add_goal("growth", 5, 0.5, 0.5)
     
+    def initialize_ai_system(self):
+        """Initialize the enhanced AI decision-making system."""
+        # Add available actions based on archon type
+        for action in create_archon_actions():
+            self.decision_engine.add_action(action)
+        
+        # Add utility functions based on domain
+        utility_functions = create_utility_functions_for_agent("archon", self.domain)
+        for goal_name, utility_fn in utility_functions.items():
+            self.decision_engine.add_utility_function(goal_name, utility_fn)
+        
+        # Update world view if world model is available
+        if self.world_model:
+            # Add archon as entity in world model
+            archon_entity = Entity(
+                id=f"archon_{self.name}",
+                type="archon",
+                position=(50, 50),  # Default starting position
+                properties={"domain": self.domain, "name": self.name}
+            )
+            self.world_model.add_entity(archon_entity)
+            self.world_view = self.world_model.get_agent_view(f"archon_{self.name}", vision_range=10)
+    
     def summon_spirit(self, spirit_type: str, objectives: List[str]) -> 'GrimoireSpirit':
         """Create and manage a new spirit."""
         spirit = GrimoireSpirit(f"{self.name}_{spirit_type}_{len(self.spirits)}", spirit_type)
@@ -653,21 +701,41 @@ class GrimoireArchon(GoalSeeker):
         return spirit
     
     def autonomous_update(self):
-        """Perform autonomous strategic decision making."""
+        """Perform autonomous strategic decision making with enhanced AI."""
         if self.state != "active":
             return
         
-        # Evaluate current strategic situation
+        # Update world state perception
+        self.update_world_state()
+        
+        # Update goal satisfaction based on objective measures
+        self.update_goal_satisfaction_ai()
+        
+        # Get priority goal and make intelligent decision
         priority_goal = self.get_priority_goal()
         if priority_goal:
-            self.execute_strategic_action(priority_goal)
+            # Use decision engine to select best action
+            chosen_action = self.decision_engine.decide_action(priority_goal.name)
+            if chosen_action:
+                initial_state = self.agent_state.copy()
+                self.execute_ai_action(chosen_action)
+                final_state = self.agent_state.copy()
+                
+                # Record experience for learning
+                utility_change = self.calculate_utility_change(initial_state, final_state, priority_goal.name)
+                self.decision_engine.memory.record_experience(
+                    initial_state, chosen_action, final_state, utility_change
+                )
+            else:
+                # Fallback to basic action
+                self.execute_strategic_action(priority_goal)
         
         # Update spirits
         for spirit in self.spirits:
             spirit.autonomous_update()
         
-        # Resource allocation
-        self.allocate_resources()
+        # Resource allocation with AI considerations
+        self.allocate_resources_ai()
     
     def execute_strategic_action(self, goal: Goal):
         """Execute a strategic action to pursue a goal."""
@@ -706,6 +774,166 @@ class GrimoireArchon(GoalSeeker):
             allocation_per_spirit = self.resource_budget // len(self.spirits)
             for spirit in self.spirits:
                 spirit.resource_allocation = allocation_per_spirit
+    
+    def update_world_state(self):
+        """Update agent's perception of the world state."""
+        # Update world view if available
+        if self.world_model:
+            self.world_view = self.world_model.get_agent_view(f"archon_{self.name}", vision_range=10)
+        
+        # Update agent state based on current situation
+        self.agent_state.update({
+            "controlled_territory": self.calculate_territory_control(),
+            "total_resources": self.calculate_total_resources(),
+            "spirit_count": len(self.spirits),
+            "military_strength": self.calculate_military_strength(),
+            "ally_count": self.calculate_ally_count(),
+            "reputation": self.agent_state.get("reputation", 0),
+            "diplomatic_power": self.agent_state.get("diplomatic_power", 25)
+        })
+        
+        # Update decision engine world state
+        self.decision_engine.update_world_state(self.agent_state)
+    
+    def update_goal_satisfaction_ai(self):
+        """Update goal satisfaction using objective AI evaluation."""
+        for goal in self.goals:
+            if self.world_view:
+                satisfaction = self.goal_evaluator.evaluate_goal(
+                    goal.name, self.agent_state, self.world_view
+                )
+                goal.current_satisfaction = satisfaction
+    
+    def execute_ai_action(self, action: Action):
+        """Execute an AI-selected action."""
+        if action.name == "expand_territory":
+            self.expand_territory_ai()
+        elif action.name == "form_alliance":
+            self.form_alliance_ai()
+        elif action.name == "build_infrastructure":
+            self.build_infrastructure_ai()
+        elif action.name == "recruit_spirits":
+            self.recruit_spirits_ai()
+        else:
+            # Fallback to basic execution
+            self.execute_strategic_action_by_name(action.name)
+    
+    def calculate_utility_change(self, initial_state: Dict[str, Any], 
+                               final_state: Dict[str, Any], goal_name: str) -> float:
+        """Calculate utility change from action execution."""
+        if goal_name not in self.decision_engine.utility_functions:
+            return 0.0
+        
+        utility_fn = self.decision_engine.utility_functions[goal_name]
+        initial_utility = utility_fn.evaluate(initial_state)
+        final_utility = utility_fn.evaluate(final_state)
+        
+        return final_utility - initial_utility
+    
+    def allocate_resources_ai(self):
+        """Allocate resources using AI-driven decisions."""
+        if self.resource_budget > 0 and self.spirits:
+            # Priority-based allocation
+            spirit_priorities = []
+            for spirit in self.spirits:
+                priority_goal = spirit.get_priority_goal()
+                priority = priority_goal.priority if priority_goal else 1
+                spirit_priorities.append((spirit, priority))
+            
+            # Sort by priority
+            spirit_priorities.sort(key=lambda x: x[1], reverse=True)
+            
+            # Allocate more resources to higher priority spirits
+            total_priority = sum(p[1] for p in spirit_priorities)
+            for spirit, priority in spirit_priorities:
+                allocation = int(self.resource_budget * (priority / total_priority))
+                spirit.resource_allocation = allocation
+    
+    # Enhanced action implementations
+    def expand_territory_ai(self):
+        """AI-enhanced territorial expansion."""
+        self.agent_state["controlled_territory"] += 5
+        self.agent_state["total_resources"] -= 25
+        if len([s for s in self.spirits if s.spirit_type == "Guardian"]) < 2:
+            self.summon_spirit("Guardian", ["defend_territory", "patrol_borders"])
+    
+    def form_alliance_ai(self):
+        """AI-enhanced alliance formation."""
+        self.agent_state["ally_count"] += 1
+        self.agent_state["diplomatic_power"] -= 5
+        self.agent_state["reputation"] += 10
+    
+    def build_infrastructure_ai(self):
+        """AI-enhanced infrastructure building."""
+        self.agent_state["economic_efficiency"] += 0.1
+        self.agent_state["total_resources"] -= 100
+        self.agent_state["resource_production_rate"] += 2
+    
+    def recruit_spirits_ai(self):
+        """AI-enhanced spirit recruitment."""
+        spirit_type = self.determine_needed_spirit_type()
+        objectives = self.generate_spirit_objectives(spirit_type)
+        self.summon_spirit(spirit_type, objectives)
+        self.agent_state["total_resources"] -= 30
+    
+    # Helper calculation methods
+    def calculate_territory_control(self) -> int:
+        """Calculate current territorial control."""
+        base_territory = 10
+        spirit_bonus = len(self.spirits) * 2
+        return base_territory + spirit_bonus
+    
+    def calculate_total_resources(self) -> int:
+        """Calculate total available resources."""
+        return self.resource_budget + sum(spirit.resource_allocation for spirit in self.spirits)
+    
+    def calculate_military_strength(self) -> int:
+        """Calculate military strength based on spirits."""
+        guardian_count = len([s for s in self.spirits if s.spirit_type == "Guardian"])
+        return 20 + guardian_count * 10
+    
+    def calculate_ally_count(self) -> int:
+        """Calculate number of allies."""
+        return self.agent_state.get("ally_count", 0)
+    
+    def determine_needed_spirit_type(self) -> str:
+        """Determine what type of spirit is most needed."""
+        guardian_count = len([s for s in self.spirits if s.spirit_type == "Guardian"])
+        scout_count = len([s for s in self.spirits if s.spirit_type == "Scout"])
+        harvester_count = len([s for s in self.spirits if s.spirit_type == "Harvester"])
+        
+        if self.domain == "Combat" and guardian_count < 2:
+            return "Guardian"
+        elif self.domain == "Economy" and harvester_count < 1:
+            return "Harvester"
+        elif scout_count < 1:
+            return "Scout"
+        else:
+            return "Guardian"  # Default
+    
+    def generate_spirit_objectives(self, spirit_type: str) -> List[str]:
+        """Generate objectives for a new spirit based on type and domain."""
+        if spirit_type == "Guardian":
+            return ["defend_territory", "patrol_borders", "threat_assessment"]
+        elif spirit_type == "Scout":
+            return ["exploration", "intelligence_gathering", "reconnaissance"]
+        elif spirit_type == "Harvester":
+            return ["resource_collection", "site_security", "efficiency_optimization"]
+        else:
+            return ["general_support", "coordination"]
+    
+    def execute_strategic_action_by_name(self, action_name: str):
+        """Execute strategic action by name (fallback method)."""
+        if action_name == "expand_territory":
+            self.expand_territory()
+        elif action_name == "form_alliance":
+            self.seek_alliances()
+        elif action_name == "build_infrastructure":
+            self.optimize_resource_gathering()
+        elif action_name == "recruit_spirits":
+            spirit_type = self.determine_needed_spirit_type()
+            objectives = self.generate_spirit_objectives(spirit_type)
+            self.summon_spirit(spirit_type, objectives)
 
 
 class GrimoireSpirit(GoalSeeker):
@@ -784,7 +1012,7 @@ class GrimoireSpirit(GoalSeeker):
                 "correction_authority": ["state", "behavior"]
             }
     
-    def spawn_familiar(self, familiar_type: str, objectives: List[str]) -> GrimoireFamiliar:
+    def spawn_familiar(self, familiar_type: str, objectives: List[str]) -> 'GrimoireFamiliar':
         """Create and manage a new familiar without pact."""
         capabilities = FAMILIAR_TYPES.get(familiar_type, lambda: {})()
         familiar = GrimoireFamiliar(f"{self.name}_{familiar_type}_{len(self.familiars)}", familiar_type, capabilities)
@@ -1448,6 +1676,9 @@ class GrimoireInterpreter:
         self.familiar_wrangler = FamiliarWrangler()  # Familiar monitoring system
         self.pact_registry = PactRegistry()  # Global pact registry
         
+        # Enhanced AI system components
+        self.world_model = WorldModel(width=100, height=100)  # 100x100 world grid
+        
         # Define built-in functions
         self._define_builtins()
     
@@ -1486,7 +1717,8 @@ class GrimoireInterpreter:
             archon_name = arguments[0]
             domain = arguments[1]
             
-            archon = GrimoireArchon(archon_name, domain)
+            # Pass world model to archon for enhanced AI
+            archon = GrimoireArchon(archon_name, domain, self.world_model)
             self.archons[archon_name] = archon
             return archon
         

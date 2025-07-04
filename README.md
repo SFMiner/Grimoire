@@ -1,214 +1,373 @@
-# Grimoire Programming Language
+# 🔮 Grimoire Programming Language
 
-A magical programming language designed for game development with familiar-based programming paradigms, effect systems, and dimensional programming concepts.
+A magical programming language designed for game development with hierarchical autonomous agents, immutable pacts, and emergent AI behaviors.
 
-## Overview
+## ✨ Features
 
-Grimoire is a unique programming language that brings magical concepts to software development. It features:
+- **🤖 Hierarchical Agent System**: Three-tier AI architecture (Archons → Spirits → Familiars)
+- **🤝 Immutable Pact System**: Secure, black-box agreements with true name authentication
+- **📊 Familiar Wrangler**: Centralized monitoring and debugging for agent activities
+- **🎯 Goal-Oriented AI**: Priority-based decision making with emergent behaviors
+- **🎨 Thematic Syntax**: Magical keywords and constructs for immersive coding
+- **🔍 Interactive REPL**: Rich debugging and exploration environment
 
-- **Magical Syntax**: Uses mystical terminology like `conjure`, `ritual`, `artifact`, and `familiar`
-- **Object-Oriented Programming**: Classes are called "artifacts" and methods are "rituals"
-- **Familiar System**: Specialized entities for game development and AI
-- **Effect System**: Explicit handling of side effects through magical auras
-- **Planar Programming**: Dimensional concepts for complex state management
+## 🚀 Quick Start
 
-## Installation
-
-```bash
-pip install grimoire-lang
-```
-
-Or clone and install from source:
+### Installation
 
 ```bash
-git clone https://github.com/SFMiner/Grimoire.git
-cd Grimoire
-pip install -e .
+# Clone the repository
+git clone https://github.com/grimoire-lang/grimoire.git
+cd grimoire
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the interactive REPL
+python -m grimoire --interactive
 ```
 
-## Quick Start
-
-### Hello World
+### Your First Spell
 
 ```grimoire
-# hello_world.grim
-ritual main():
-    scry $SCROLL(Hello, Grimoire World!)
+# Hello World
+scry $SCROLL(Hello, magical world!)
 
-main upon
+# Variables and functions  
+bind name = $SCROLL(Wizard)
+ritual greet(target):
+    scry $SCROLL(Greetings, ) added to target added to $SCROLL(!)
+
+greet(name)
+
+# Create your first familiar (need spirit first)
+bind helper_spirit = create_spirit upon $SCROLL(Assistant), $SCROLL(Helper)
+bind helper_familiar = create_familiar_with_pact upon helper_spirit, $SCROLL(Helper), [$SCROLL(assist_player)]
+
+# Monitor activity
+enable_reporting upon helper_familiar, $SCROLL(command)
+bind report = get_wrangler_report upon
+scry report
 ```
 
-Run with:
-```bash
-grimoire hello_world.grim
-```
+## 🎭 Language Overview
 
-### Basic Syntax
-
-#### Variables and Data Types
+### Core Syntax
 
 ```grimoire
-# Variable binding
-bind wizard_name = $SCROLL(Merlin)  # String literal
-bind power_level = 9000             # Integer literal  
-bind mana_ratio = 0.75              # Float literal
+# Variables
+bind health = 100
+bind mana = 50
 
-# Output
-scry wizard_name
-```
+# Functions (called "rituals")
+ritual cast_spell(spell_name, cost):
+    if mana >= cost:
+        mana = mana - cost
+        scry $FLAME("Cast " + spell_name + "!")
+        return true
+    else:
+        scry $SCROLL("Not enough mana")
+        return false
 
-#### Artifacts (Classes)
-
-```grimoire
-artifact Wizard:
-    essence name        # Class attribute
-    essence mana = 100  # With default value
-    
-    ritual invoke(wizard_name):  # Constructor
-        bind self.name = wizard_name
-        scry $SCROLL(Wizard ) added to wizard_name added to $SCROLL( awakens!)
-    
-    ritual cast_spell(spell_name):
-        if enchanted self.mana is greater than 10:
-            bind self.mana = self.mana subtracted from 10
-            scry $SCROLL(Casting ) added to spell_name
-        else cursed:
-            scry $SCROLL(Not enough mana!)
-
-# Create instance
-bind merlin = conjure Wizard upon $SCROLL(Merlin)
-merlin.cast_spell upon $SCROLL(Fireball)
-```
-
-#### Control Flow
-
-```grimoire
-# Conditional statements
-if enchanted player.health is greater than 0:
-    scry $SCROLL(Player is alive!)
-else cursed:
-    scry $SCROLL(Game over!)
+# Control flow
+if health > 50:
+    scry $CRYSTAL("Healthy")
+elif health > 20:
+    scry $SCROLL("Wounded")
+else:
+    scry $MIRROR("Critical!")
 
 # Loops
-while charged enemy.health is greater than 0:
-    player.attack upon enemy
-    
-for each arcana spell in spellbook:
-    spell.cast upon
+for i in [1, 2, 3, 4, 5]:
+    scry $SCROLL("Count: " + str(i))
 ```
 
-#### Functions (Rituals)
+### Scrying (Output) System
+
+Grimoire uses thematic output variants:
+
+- `$SCROLL(text)` - Standard text output
+- `$CRYSTAL(data)` - Structured data display
+- `$FLAME(message)` - Urgent/important messages
+- `$MIRROR(reflection)` - Debug/reflection output
+- `$RUNE(symbol)` - Symbolic/magical output
+
+## 🤖 Agent System
+
+### Three-Tier Architecture
 
 ```grimoire
-ritual calculate_damage(base_damage, modifier):
-    bind total = base_damage multiplied by modifier
-    return total
+# Strategic Level (Archons)
+create_archon("WarCommander", "Combat", ["defend_territory", "coordinate_attacks"])
 
-bind damage = calculate_damage upon 50, 1.5
-scry damage  # Outputs: 75
+# Tactical Level (Spirits)
+create_spirit("Infantry", "Combat", ["maintain_formation", "execute_orders"])
+
+# Operational Level (Familiars)
+create_familiar_with_pact("soldier", "follow_orders")
 ```
 
-## Language Features
+### Agent Hierarchy
 
-### Magical Operators
+```
+Archon (Strategic AI)
+├── Domain: Combat, Economy, Diplomacy, etc.
+├── Goals: High-level strategic objectives
+├── Spirits: Multiple tactical managers
+└── Resources: Cross-domain resource allocation
 
-| Grimoire | Traditional | Description |
-|----------|-------------|-------------|
-| `added to` | `+` | Addition |
-| `subtracted from` | `-` | Subtraction |
-| `multiplied by` | `*` | Multiplication |
-| `divided by` | `/` | Division |
-| `is greater than` | `>` | Greater than |
-| `is lesser than` | `<` | Less than |
-| `is equal to` | `==` | Equality |
-| `is now` | `=` | Assignment |
-| `diminish by` | `-=` | Decrement |
-| `strengthen by` | `+=` | Increment |
+Spirit (Tactical AI)
+├── Domain: Specific area of authority
+├── Goals: Short-term tactical objectives
+├── Familiars: Multiple operational units
+└── Authority: Pact creation and management
 
-### Keywords
+Familiar (Operational AI)
+├── Pacts: Immutable behavioral contracts
+├── Activities: Direct entity management
+├── Reporting: Activity logs and status
+└── Behaviors: Reactive and proactive actions
+```
 
-- `conjure` - Create objects
-- `summon` - Import modules
-- `bind` - Variable assignment
-- `ritual` - Function definition
-- `artifact` - Class definition
-- `familiar` - Familiar definition
-- `essence` - Class attribute
-- `scry` - Print/output
-- `upon` - Function call
-- `if enchanted` - If statement
-- `else cursed` - Else statement
-- `while charged` - While loop
-- `for each arcana` - For loop
+## 🤝 Pact System
 
-## Examples
-
-### Wizard Battle System
+### Immutable Agreements
 
 ```grimoire
-artifact Wizard:
-    essence name
-    essence health = 100
-    essence mana = 50
-    
-    ritual invoke(wizard_name):
-        bind self.name = wizard_name
-    
-    ritual fireball(target):
-        if enchanted self.mana is not lesser than 20:
-            bind damage = 35
-            target.take_damage upon damage
-            diminish self.mana by 20
-            scry self.name added to $SCROLL( casts Fireball!)
-        else cursed:
-            scry $SCROLL(Not enough mana!)
-    
-    ritual take_damage(amount):
-        diminish self.health by amount
-        scry self.name added to $SCROLL( takes ) added to amount added to $SCROLL( damage!)
+# Create a patrol pact
+create_familiar_with_pact("guard", "patrol_walls")
 
-# Battle simulation
-bind gandalf = conjure Wizard upon $SCROLL(Gandalf)
-bind saruman = conjure Wizard upon $SCROLL(Saruman)
+# Invoke pact behavior
+invoke_pact("guard", "patrol_walls")
 
-gandalf.fireball upon saruman
+# Monitor pact execution
+get_familiar_stats("guard")
 ```
 
-## Development Roadmap
+### Pact Features
 
-The Grimoire language is under active development. Current status:
+- **Immutable**: Cannot be modified after creation
+- **Secure**: True name authentication and domain authority
+- **Black Box**: Terms hidden from external inspection
+- **Spirit-Controlled**: Only spirits can create and revoke pacts
+- **Initialization-Only**: Pacts bound during familiar creation
 
-✅ **Phase 1: Core Language** (Complete)
-- Lexical analyzer and parser
-- Basic interpreter
-- Object-oriented programming
-- Control flow structures
+## 📊 Monitoring & Debugging
 
-🚧 **Phase 2: Familiar System** (In Progress)
-- Familiar entities for game development
-- AI goal system
-- Entity management
+### Interactive REPL Commands
 
-🔮 **Phase 3: Advanced Features** (Planned)
-- Effect system for side effect management
-- Planar programming for dimensional concepts
-- Socket system for dynamic connections
+```grimoire
+# Basic help
+help()
+help('agents')
+help('pacts')
 
-🔮 **Phase 4: Standard Library** (Planned)
-- Game development utilities
-- Built-in familiars and artifacts
-- Development tools and REPL
+# Debugging
+debug on
+show_tokens
+show_ast
 
-## Contributing
+# Agent monitoring
+agents()
+familiars()
+wrangler()
 
-Grimoire is an open-source project and contributions are welcome! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+# System status
+get_wrangler_report()
+get_pact_summary()
+```
 
-## License
+### Activity Reporting
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```grimoire
+# Enable selective reporting
+enable_reporting("familiar_name", ["command", "environmental", "inter_familiar"])
 
-## Philosophy
+# Check activity logs
+get_familiar_stats("familiar_name")
 
-Grimoire aims to make programming more intuitive and expressive by using magical metaphors that align with game development concepts. The language encourages thinking about software in terms of entities, behaviors, and magical interactions rather than just functions and data structures.
+# System overview
+get_wrangler_report()
+```
+
+## 🎯 Examples
+
+### Simple RPG System
+
+```grimoire
+# Character stats
+bind player_health = 100
+bind player_mana = 50
+bind player_gold = 250
+
+# Spell casting system
+ritual cast_spell(spell_name, mana_cost):
+    if player_mana >= mana_cost:
+        player_mana = player_mana - mana_cost
+        scry $FLAME("✨ Cast " + spell_name + "!")
+        return true
+    else:
+        scry $SCROLL("❌ Not enough mana")
+        return false
+
+# Combat AI
+create_archon("BattleCommander", "Combat", ["protect_player", "defeat_enemies"])
+create_spirit("Guardian", "Combat", ["defensive_stance", "healing_support"])
+create_familiar_with_pact("healer", "heal_when_low_health")
+
+# Enable monitoring
+enable_reporting("healer", ["command", "environmental"])
+
+# Game loop
+cast_spell("Healing Light", 25)
+autonomous_update("healer")
+scry $CRYSTAL("Health: " + str(player_health) + ", Mana: " + str(player_mana))
+```
+
+### Complex Agent Coordination
+
+```grimoire
+# Multi-domain strategy
+create_archon("CityMaster", "Economy", ["manage_resources", "optimize_trade"])
+create_archon("DefenseChief", "Defense", ["protect_borders", "coordinate_patrols"])
+
+# Tactical managers
+create_spirit("Merchant", "Economy", ["buy_low", "sell_high"])
+create_spirit("Captain", "Defense", ["patrol_routes", "respond_to_threats"])
+
+# Operational units
+create_familiar_with_pact("trader", "execute_trades")
+create_familiar_with_pact("scout", "patrol_perimeter")
+create_familiar_with_pact("guard", "defend_gates")
+
+# Enable comprehensive monitoring
+enable_reporting("trader", ["command", "environmental"])
+enable_reporting("scout", ["environmental", "inter_familiar"])
+enable_reporting("guard", ["command", "pact"])
+
+# Coordinate activities
+autonomous_update("trader")
+autonomous_update("scout")
+autonomous_update("guard")
+
+# System overview
+get_wrangler_report()
+```
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+grimoire/
+├── cli.py              # Command-line interface
+├── lexer.py            # Tokenization
+├── parser.py           # Syntax analysis
+├── interpreter.py      # Code execution
+├── help_system.py      # Documentation system
+├── hierarchical_agents.py  # Agent system
+├── familiar_wrangler.py    # Monitoring system
+├── pact_system.py          # Pact management
+└── examples/               # Example programs
+    ├── hierarchical_agents_demo.grim
+    ├── basic_syntax_demo.grim
+    └── pact_system_demo.grim
+```
+
+### Running Tests
+
+```bash
+# Run the comprehensive demo
+python -m grimoire examples/hierarchical_agents_demo.grim
+
+# Interactive development
+python -m grimoire --interactive
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests and documentation
+5. Submit a pull request
+
+## 📚 Documentation
+
+### Command Line Help
+
+```bash
+# Show CLI help
+grimoire --help
+
+# Show version
+grimoire --version
+
+# Interactive help
+grimoire --interactive
+> help()
+> help('agents')
+> help('pacts')
+```
+
+### Available Help Topics
+
+- `keywords` - Language syntax and constructs
+- `functions` - Built-in functions
+- `agents` - Hierarchical agent system
+- `pacts` - Immutable pact system
+- `syntax` - Basic language syntax
+- `examples` - Code examples
+- `debugging` - Debugging guide
+- `quickstart` - Getting started guide
+- `advanced` - Advanced features
+
+## 🔮 Philosophy
+
+Grimoire is designed around the concept of **magical programming** - where code is not just functional but thematically rich and engaging. The language embraces:
+
+- **Immersive Terminology**: Rituals instead of functions, scrying instead of printing
+- **Emergent Behaviors**: AI agents that develop complex behaviors through simple rules
+- **Secure Contracts**: Pacts that enforce agreements without exposing implementation
+- **Hierarchical Intelligence**: Natural command structures that mirror real-world organizations
+
+## 🎨 Keyword Variants
+
+Grimoire supports thematic keyword variants for different magical schools:
+
+- **Elemental**: `forge` (bind), `transmute` (transform)
+- **Arcane**: `inscribe` (bind), `manifest` (create)
+- **Divine**: `consecrate` (bind), `bless` (enhance)
+- **Shadow**: `bind` (default), `conceal` (hide)
+- **Nature**: `grow` (bind), `nurture` (develop)
+
+## 🚧 Roadmap
+
+### Current Status (v1.0.0)
+- ✅ Complete hierarchical agent system
+- ✅ Immutable pact system with security
+- ✅ Familiar wrangler monitoring
+- ✅ Goal-oriented AI framework
+- ✅ Interactive help system
+- ✅ Comprehensive documentation
+
+### Future Features
+- 🔄 Multidimensional plane system
+- 🔄 Advanced learning algorithms
+- 🔄 Visual agent debugging tools
+- 🔄 Real-time collaboration features
+- 🔄 Game engine integrations
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🌟 Credits
+
+Created with ❤️ for game developers who believe in the magic of code.
+
+---
 
 *"Any sufficiently advanced technology is indistinguishable from magic."* - Arthur C. Clarke
+
+*"Any sufficiently magical code is indistinguishable from advanced technology."* - Grimoire Philosophy
