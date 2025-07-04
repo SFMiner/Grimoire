@@ -1,0 +1,114 @@
+# Grimoire Hierarchical Agent System Demo
+# Demonstrates Archons > Spirits > Familiars with Pacts and Monitoring
+
+ritual main():
+    scry $SCROLL(=== Grimoire Hierarchical Agent System Demo ===)
+    
+    # Create a Strategic Archon
+    bind military_archon = create_archon upon $SCROLL(WarMaster), $SCROLL(Combat)
+    scry $SCROLL(Created: ) added to military_archon
+    
+    # Create Tactical Spirits with Different Domains
+    bind guardian_spirit = create_spirit upon $SCROLL(BaseGuardian), $SCROLL(Guardian), $SCROLL(security)
+    bind scout_spirit = create_spirit upon $SCROLL(Pathfinder), $SCROLL(Scout), $SCROLL(intelligence)
+    scry $SCROLL(Created: ) added to guardian_spirit
+    scry $SCROLL(Created: ) added to scout_spirit
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Creating Familiars with Spirit Pacts ===)
+    
+    # Guardian Spirit creates familiars with security pacts
+    bind guard_familiar = create_familiar_with_pact upon guardian_spirit, $SCROLL(Guardian), [$SCROLL(patrol), $SCROLL(defend), $SCROLL(alert)]
+    bind sensor_familiar = create_familiar_with_pact upon guardian_spirit, $SCROLL(Scout), [$SCROLL(monitor), $SCROLL(report)]
+    
+    # Scout Spirit creates familiars with intelligence pacts
+    bind scout_familiar = create_familiar_with_pact upon scout_spirit, $SCROLL(Scout), [$SCROLL(explore), $SCROLL(gather_intel), $SCROLL(stealth)]
+    
+    scry $SCROLL(Guardian Spirit created familiar: ) added to guard_familiar.name
+    scry $SCROLL(Guardian Spirit created familiar: ) added to sensor_familiar.name
+    scry $SCROLL(Scout Spirit created familiar: ) added to scout_familiar.name
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Pact Information ===)
+    
+    # Display pact summaries
+    bind guard_pacts = get_pact_summary upon guard_familiar
+    bind scout_pacts = get_pact_summary upon scout_familiar
+    scry $SCROLL(Guard Familiar True Name: ) added to guard_pacts.true_name
+    scry $SCROLL(Guard Familiar Pacts: ) added to guard_pacts.total_pacts
+    scry $SCROLL(Scout Familiar True Name: ) added to scout_pacts.true_name
+    scry $SCROLL(Scout Familiar Pacts: ) added to scout_pacts.total_pacts
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Spirit Domain Information ===)
+    
+    # Display spirit pact management
+    bind guardian_spirit_pacts = get_spirit_pacts upon guardian_spirit
+    bind scout_spirit_pacts = get_spirit_pacts upon scout_spirit
+    scry $SCROLL(Guardian Spirit manages: ) added to guardian_spirit_pacts.total_pacts added to $SCROLL( familiars)
+    scry $SCROLL(Scout Spirit manages: ) added to scout_spirit_pacts.total_pacts added to $SCROLL( familiars)
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Familiar Wrangler System ===)
+    
+    # Enable monitoring for all familiars
+    bind reporting_result = enable_all_reporting upon $SCROLL(command)
+    scry $SCROLL(Reporting enabled: ) added to reporting_result
+    
+    # Get wrangler status
+    bind wrangler_summary = get_wrangler_summary upon
+    scry $SCROLL(Wrangler monitoring: ) added to wrangler_summary.total_familiars added to $SCROLL( familiars)
+    scry $SCROLL(Active familiars: ) added to wrangler_summary.active_familiars
+    scry $SCROLL(Reporting familiars: ) added to wrangler_summary.reporting_familiars
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Invoking Pacts ===)
+    
+    # Spirits invoke pacts to command familiars
+    bind patrol_result = invoke_pact upon guardian_spirit, guard_pacts.true_name, $SCROLL(command), $SCROLL(patrol)
+    scry $SCROLL(Guardian Spirit commanded patrol: ) added to patrol_result
+    
+    bind explore_result = invoke_pact upon scout_spirit, scout_pacts.true_name, $SCROLL(command), $SCROLL(explore)
+    scry $SCROLL(Scout Spirit commanded exploration: ) added to explore_result
+    
+    # Domain oversight - spirits monitor their familiars
+    bind guard_oversight = oversee_domain upon guardian_spirit
+    bind scout_oversight = oversee_domain upon scout_spirit
+    scry $SCROLL(Guardian oversight: ) added to guard_oversight
+    scry $SCROLL(Scout oversight: ) added to scout_oversight
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Autonomous Updates ===)
+    
+    # Run autonomous agent updates
+    bind update_result = autonomous_update upon
+    scry $SCROLL(Agent update: ) added to update_result
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Activity Reports ===)
+    
+    # Get activity reports from the wrangler
+    bind activity_reports = get_wrangler_report upon
+    scry $SCROLL(Total activities logged: ) added to activity_reports
+    
+    # Get detailed familiar statistics
+    bind familiar_stats = get_familiar_stats upon
+    scry $SCROLL(Familiar statistics available for detailed analysis)
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Pact Revocation Demo ===)
+    
+    # Demonstrate pact revocation (only the creating spirit can do this)
+    bind revoke_result = revoke_pact upon guardian_spirit, sensor_familiar.true_name
+    scry $SCROLL(Pact revocation: ) added to revoke_result
+    
+    # Check updated pact counts
+    bind updated_guardian_pacts = get_spirit_pacts upon guardian_spirit
+    scry $SCROLL(Guardian Spirit now manages: ) added to updated_guardian_pacts.total_pacts added to $SCROLL( familiars)
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Demo Complete ===)
+    scry $SCROLL(Demonstrated: Hierarchical Agents, Pacts, True Names, Domain Authority, and Familiar Wrangler)
+
+# Run the demonstration
+main upon

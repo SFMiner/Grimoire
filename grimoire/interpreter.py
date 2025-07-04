@@ -2,24 +2,23 @@
 """
 Grimoire Programming Language Interpreter
 
-This module implements a tree-walking interpreter for the Grimoire programming language,
-executing the Abstract Syntax Tree (AST) directly.
+This module implements a tree-walking interpreter for the Grimoire programming language.
 """
 
-from typing import Any, Dict, List, Optional, Callable
-from dataclasses import dataclass
 import sys
-
+from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from .lexer import TokenType
 from .parser import (
-    ASTNode, Expression, Statement, Program,
+    Program, Statement, Expression, ASTNode,
     LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression,
     CallExpression, PropertyAccessExpression, ConjureExpression, PortalExpression,
-    PropertyAssignmentExpression,
-    ExpressionStatement, BindStatement, ScryStatement, IfStatement, WhileStatement,
-    ForStatement, BlockStatement, ReturnStatement, BreakStatement, ContinueStatement,
-    RitualStatement, ArtifactStatement, FamiliarStatement, PlaneStatement,
-    EffectStatement, CommandStatement
+    PropertyAssignmentExpression, ExpressionStatement, BindStatement, ScryStatement,
+    IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
+    BreakStatement, ContinueStatement,
+    RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
+    PlaneStatement, EffectStatement, CommandStatement
 )
 
 
@@ -98,6 +97,1274 @@ class GrimoireInstance:
         self.fields[name] = value
 
 
+# =============================================================================
+# Familiar System
+# =============================================================================
+
+class FamiliarCapability(ABC):
+    """Base class for familiar capabilities."""
+    
+    @abstractmethod
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        """Execute a command with given arguments."""
+        pass
+    
+    @abstractmethod
+    def inquire(self, query: str) -> Any:
+        """Handle an inquiry about the familiar's state."""
+        pass
+
+
+class MemoryImpCapability(FamiliarCapability):
+    """Memory management familiar capability."""
+    
+    def __init__(self):
+        self.allocated_memory = 0
+        self.max_memory = 1024 * 1024  # 1MB default
+    
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        if command == "allocate":
+            if len(arguments) != 1:
+                raise RuntimeError("allocate expects 1 argument (bytes)")
+            bytes_to_allocate = arguments[0]
+            if self.allocated_memory + bytes_to_allocate > self.max_memory:
+                raise RuntimeError("Not enough memory available")
+            self.allocated_memory += bytes_to_allocate
+            return f"Allocated {bytes_to_allocate} bytes"
+        elif command == "deallocate":
+            if len(arguments) != 1:
+                raise RuntimeError("deallocate expects 1 argument (bytes)")
+            bytes_to_free = arguments[0]
+            self.allocated_memory = max(0, self.allocated_memory - bytes_to_free)
+            return f"Deallocated {bytes_to_free} bytes"
+        else:
+            raise RuntimeError(f"Unknown memory command: {command}")
+    
+    def inquire(self, query: str) -> Any:
+        if query == "free_space":
+            return self.max_memory - self.allocated_memory
+        elif query == "used_space":
+            return self.allocated_memory
+        elif query == "total_space":
+            return self.max_memory
+        else:
+            raise RuntimeError(f"Unknown memory query: {query}")
+
+
+class FileSpriteCapability(FamiliarCapability):
+    """File system operations familiar capability."""
+    
+    def __init__(self):
+        self.open_files = {}
+    
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        if command == "read":
+            if len(arguments) != 1:
+                raise RuntimeError("read expects 1 argument (filename)")
+            filename = arguments[0]
+            try:
+                with open(filename, 'r') as f:
+                    return f.read()
+            except Exception as e:
+                raise RuntimeError(f"Failed to read file: {e}")
+        elif command == "write":
+            if len(arguments) != 2:
+                raise RuntimeError("write expects 2 arguments (filename, content)")
+            filename, content = arguments
+            try:
+                with open(filename, 'w') as f:
+                    f.write(str(content))
+                return f"Wrote to {filename}"
+            except Exception as e:
+                raise RuntimeError(f"Failed to write file: {e}")
+        elif command == "append":
+            if len(arguments) != 2:
+                raise RuntimeError("append expects 2 arguments (filename, content)")
+            filename, content = arguments
+            try:
+                with open(filename, 'a') as f:
+                    f.write(str(content))
+                return f"Appended to {filename}"
+            except Exception as e:
+                raise RuntimeError(f"Failed to append to file: {e}")
+        else:
+            raise RuntimeError(f"Unknown file command: {command}")
+    
+    def inquire(self, query: str) -> Any:
+        if query == "open_files":
+            return list(self.open_files.keys())
+        else:
+            raise RuntimeError(f"Unknown file query: {query}")
+
+
+class LogScribeCapability(FamiliarCapability):
+    """Logging and tracing familiar capability."""
+    
+    def __init__(self):
+        self.log_entries = []
+        self.log_level = "INFO"
+    
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        if command == "log":
+            if len(arguments) < 1:
+                raise RuntimeError("log expects at least 1 argument (message)")
+            message = arguments[0]
+            level = arguments[1] if len(arguments) > 1 else "INFO"
+            self.log_entries.append(f"[{level}] {message}")
+            return f"Logged: {message}"
+        elif command == "clear":
+            self.log_entries.clear()
+            return "Log cleared"
+        elif command == "set_level":
+            if len(arguments) != 1:
+                raise RuntimeError("set_level expects 1 argument (level)")
+            self.log_level = arguments[0]
+            return f"Log level set to {self.log_level}"
+        else:
+            raise RuntimeError(f"Unknown log command: {command}")
+    
+    def inquire(self, query: str) -> Any:
+        if query == "entries":
+            return self.log_entries.copy()
+        elif query == "level":
+            return self.log_level
+        elif query == "count":
+            return len(self.log_entries)
+        else:
+            raise RuntimeError(f"Unknown log query: {query}")
+
+
+# The GrimoireFamiliar class is now defined below with full hierarchical agent integration
+
+
+# =============================================================================
+# Activity Reporting and Monitoring System
+# =============================================================================
+
+@dataclass
+class Activity:
+    """Represents an activity performed by a familiar."""
+    timestamp: float
+    familiar_name: str
+    activity_type: str  # "self", "inter_familiar", "environmental", "command"
+    description: str
+    details: Dict[str, Any]
+    
+    def is_self(self) -> bool:
+        """Check if this is a self-activity (internal processing)."""
+        return self.activity_type == "self"
+    
+    def is_inter_familiar(self) -> bool:
+        """Check if this involves interaction with other familiars."""
+        return self.activity_type == "inter_familiar"
+    
+    def is_environmental(self) -> bool:
+        """Check if this involves environmental interaction."""
+        return self.activity_type == "environmental"
+    
+    def is_command(self) -> bool:
+        """Check if this is a command execution."""
+        return self.activity_type == "command"
+
+
+class FamiliarWrangler:
+    """Centralized manager for familiar reporting and monitoring."""
+    
+    def __init__(self):
+        self.active_familiars: List['GrimoireFamiliar'] = []
+        self.reporting_settings: Dict[str, Dict[str, Any]] = {}
+        self.global_reports: List[Activity] = []
+        self.is_active = True
+    
+    def register_familiar(self, familiar: 'GrimoireFamiliar') -> str:
+        """Register a familiar for potential monitoring."""
+        if familiar not in self.active_familiars:
+            self.active_familiars.append(familiar)
+            familiar.wrangler_ref = self
+            return f"Familiar {familiar.name} registered with wrangler"
+        return f"Familiar {familiar.name} already registered"
+    
+    def unregister_familiar(self, familiar: 'GrimoireFamiliar') -> str:
+        """Unregister a familiar from monitoring."""
+        if familiar in self.active_familiars:
+            self.active_familiars.remove(familiar)
+            familiar.wrangler_ref = None
+            familiar.disable_reporting()
+            return f"Familiar {familiar.name} unregistered from wrangler"
+        return f"Familiar {familiar.name} not found in registry"
+    
+    def enable_reporting(self, familiar: 'GrimoireFamiliar', report_type: str = "all") -> str:
+        """Enable reporting for a specific familiar."""
+        if familiar not in self.active_familiars:
+            self.register_familiar(familiar)
+        
+        familiar.enable_reporting(report_type)
+        self.reporting_settings[familiar.name] = {
+            "type": report_type,
+            "enabled": True,
+            "start_time": __import__('time').time()
+        }
+        return f"Reporting enabled for {familiar.name} (type: {report_type})"
+    
+    def disable_reporting(self, familiar: 'GrimoireFamiliar') -> str:
+        """Disable reporting for a specific familiar."""
+        familiar.disable_reporting()
+        if familiar.name in self.reporting_settings:
+            self.reporting_settings[familiar.name]["enabled"] = False
+        return f"Reporting disabled for {familiar.name}"
+    
+    def enable_all_reporting(self, report_type: str = "all") -> str:
+        """Enable reporting for all registered familiars."""
+        enabled_count = 0
+        for familiar in self.active_familiars:
+            if familiar.state == "active":
+                self.enable_reporting(familiar, report_type)
+                enabled_count += 1
+        return f"Reporting enabled for {enabled_count} familiars"
+    
+    def disable_all_reporting(self) -> str:
+        """Disable reporting for all familiars."""
+        disabled_count = 0
+        for familiar in self.active_familiars:
+            if familiar.is_reporting:
+                self.disable_reporting(familiar)
+                disabled_count += 1
+        return f"Reporting disabled for {disabled_count} familiars"
+    
+    def get_report(self, familiar_name: Optional[str] = None) -> List[Activity]:
+        """Get activity reports from familiars."""
+        if familiar_name:
+            # Get report from specific familiar
+            for familiar in self.active_familiars:
+                if familiar.name == familiar_name and familiar.is_reporting_enabled():
+                    return familiar.get_report()
+            return []
+        else:
+            # Get reports from all reporting familiars
+            all_reports = []
+            for familiar in self.active_familiars:
+                if familiar.is_reporting_enabled():
+                    all_reports.extend(familiar.get_report())
+            return sorted(all_reports, key=lambda a: a.timestamp)
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """Get a summary of wrangler status and activity."""
+        total_familiars = len(self.active_familiars)
+        reporting_familiars = len([f for f in self.active_familiars if f.is_reporting])
+        active_familiars = len([f for f in self.active_familiars if f.state == "active"])
+        
+        total_activities = sum(len(f.activity_log) for f in self.active_familiars)
+        
+        return {
+            "total_familiars": total_familiars,
+            "active_familiars": active_familiars,
+            "reporting_familiars": reporting_familiars,
+            "total_activities_logged": total_activities,
+            "wrangler_active": self.is_active,
+            "reporting_settings": self.reporting_settings.copy()
+        }
+    
+    def clear_reports(self, familiar_name: Optional[str] = None) -> str:
+        """Clear activity reports."""
+        if familiar_name:
+            for familiar in self.active_familiars:
+                if familiar.name == familiar_name:
+                    familiar.clear_activity_log()
+                    return f"Reports cleared for {familiar_name}"
+            return f"Familiar {familiar_name} not found"
+        else:
+            cleared_count = 0
+            for familiar in self.active_familiars:
+                if familiar.activity_log:
+                    familiar.clear_activity_log()
+                    cleared_count += 1
+            return f"Reports cleared for {cleared_count} familiars"
+    
+    def filter_activities(self, activity_type: Optional[str] = None, 
+                         time_range: Optional[tuple] = None) -> List[Activity]:
+        """Filter activities by type and/or time range."""
+        all_activities = self.get_report()
+        
+        filtered = all_activities
+        
+        if activity_type:
+            filtered = [a for a in filtered if a.activity_type == activity_type]
+        
+        if time_range:
+            start_time, end_time = time_range
+            filtered = [a for a in filtered if start_time <= a.timestamp <= end_time]
+        
+        return filtered
+    
+    def get_familiar_stats(self) -> Dict[str, Dict[str, Any]]:
+        """Get statistics for each familiar."""
+        stats = {}
+        for familiar in self.active_familiars:
+            activity_counts = {}
+            for activity in familiar.activity_log:
+                activity_type = activity.activity_type
+                activity_counts[activity_type] = activity_counts.get(activity_type, 0) + 1
+            
+            stats[familiar.name] = {
+                "type": familiar.familiar_type,
+                "state": familiar.state,
+                "is_reporting": familiar.is_reporting,
+                "report_type": familiar.report_type,
+                "total_activities": len(familiar.activity_log),
+                "activity_breakdown": activity_counts,
+                "spirit": familiar.spirit_ref.name if familiar.spirit_ref else None
+            }
+        
+        return stats
+
+
+# =============================================================================
+# Pact System: Spiritual Agreements and Domain Authority
+# =============================================================================
+
+@dataclass
+class Pact:
+    """Represents a binding agreement between a spirit and familiar."""
+    spirit_name: str
+    familiar_true_name: str
+    pact_terms: List[str]  # Actions/permissions granted
+    domain: str
+    creation_timestamp: float
+    conditions: Dict[str, Any]  # Additional pact conditions
+    
+    def is_action_permitted(self, action: str) -> bool:
+        """Check if an action is permitted under this pact."""
+        return action in self.pact_terms or "all_actions" in self.pact_terms
+    
+    def violates_conditions(self, familiar_state: Dict[str, Any]) -> bool:
+        """Check if familiar state violates pact conditions."""
+        for condition, expected_value in self.conditions.items():
+            if condition in familiar_state:
+                if familiar_state[condition] != expected_value:
+                    return True
+        return False
+
+
+class PactRegistry:
+    """Global registry of all active pacts in the system."""
+    
+    def __init__(self):
+        self.active_pacts: Dict[str, Pact] = {}  # familiar_true_name -> pact
+        self.spirit_pacts: Dict[str, List[str]] = {}  # spirit_name -> [familiar_names]
+    
+    def register_pact(self, pact: Pact) -> str:
+        """Register a new pact in the system."""
+        self.active_pacts[pact.familiar_true_name] = pact
+        
+        if pact.spirit_name not in self.spirit_pacts:
+            self.spirit_pacts[pact.spirit_name] = []
+        self.spirit_pacts[pact.spirit_name].append(pact.familiar_true_name)
+        
+        return f"Pact registered between {pact.spirit_name} and {pact.familiar_true_name}"
+    
+    def revoke_pact(self, spirit_name: str, familiar_true_name: str) -> str:
+        """Revoke a pact from the registry."""
+        if familiar_true_name in self.active_pacts:
+            pact = self.active_pacts[familiar_true_name]
+            if pact.spirit_name == spirit_name:
+                del self.active_pacts[familiar_true_name]
+                if spirit_name in self.spirit_pacts:
+                    self.spirit_pacts[spirit_name].remove(familiar_true_name)
+                return f"Pact revoked between {spirit_name} and {familiar_true_name}"
+            else:
+                raise RuntimeError(f"Only spirit {pact.spirit_name} can revoke this pact")
+        return f"No pact found for {familiar_true_name}"
+    
+    def get_pact(self, familiar_true_name: str) -> Optional[Pact]:
+        """Get the pact for a familiar."""
+        return self.active_pacts.get(familiar_true_name)
+    
+    def get_spirit_pacts(self, spirit_name: str) -> List[Pact]:
+        """Get all pacts managed by a spirit."""
+        if spirit_name not in self.spirit_pacts:
+            return []
+        return [self.active_pacts[familiar_name] for familiar_name in self.spirit_pacts[spirit_name]]
+    
+    def is_action_permitted(self, spirit_name: str, familiar_true_name: str, action: str) -> bool:
+        """Check if a spirit can perform an action on a familiar under their pact."""
+        pact = self.get_pact(familiar_true_name)
+        if not pact or pact.spirit_name != spirit_name:
+            return False
+        return pact.is_action_permitted(action)
+
+
+class ForbiddenActionError(Exception):
+    """Raised when a spirit attempts an action not permitted by pact."""
+    pass
+
+
+class NoPactError(Exception):
+    """Raised when trying to invoke a pact that doesn't exist."""
+    pass
+
+
+class DomainViolationError(Exception):
+    """Raised when a familiar violates its spirit's domain rules."""
+    pass
+
+
+# =============================================================================
+# Hierarchical Agent System: Goals, Archons, Spirits
+# =============================================================================
+
+@dataclass
+class Goal:
+    """Represents a goal for an agent."""
+    name: str
+    priority: int
+    weight: float
+    satisfaction_threshold: float
+    current_satisfaction: float = 0.0
+    
+    def is_satisfied(self) -> bool:
+        """Check if the goal is satisfied."""
+        return self.current_satisfaction >= self.satisfaction_threshold
+    
+    def get_urgency(self) -> float:
+        """Calculate urgency based on satisfaction level."""
+        return (1.0 - self.current_satisfaction) * self.weight
+
+
+class GoalSeeker:
+    """Mixin class for agents that can pursue goals."""
+    
+    def __init__(self):
+        self.goals: List[Goal] = []
+    
+    def add_goal(self, name: str, priority: int, weight: float = 1.0, threshold: float = 1.0):
+        """Add a goal to this agent."""
+        goal = Goal(name, priority, weight, threshold)
+        self.goals.append(goal)
+        # Sort by priority (highest first)
+        self.goals.sort(key=lambda g: g.priority, reverse=True)
+    
+    def evaluate_goals(self) -> Dict[str, float]:
+        """Evaluate satisfaction of all goals."""
+        satisfaction = {}
+        for goal in self.goals:
+            satisfaction[goal.name] = goal.current_satisfaction
+        return satisfaction
+    
+    def get_priority_goal(self) -> Optional[Goal]:
+        """Get the highest priority unsatisfied goal."""
+        for goal in self.goals:
+            if not goal.is_satisfied():
+                return goal
+        return None
+    
+    def update_goal_satisfaction(self, goal_name: str, satisfaction: float):
+        """Update the satisfaction level of a goal."""
+        for goal in self.goals:
+            if goal.name == goal_name:
+                goal.current_satisfaction = max(0.0, min(1.0, satisfaction))
+                break
+
+
+class InteractionMatrix:
+    """Manages relationships and interactions between agents."""
+    
+    def __init__(self):
+        self.relationships: Dict[str, str] = {}  # "agent1-agent2" -> "relationship_type"
+        self.communication_protocols: Dict[str, str] = {}
+        self.cooperation_history: Dict[str, List[str]] = {}
+    
+    def establish_relationship(self, agent_a: str, agent_b: str, relationship_type: str):
+        """Establish a relationship between two agents."""
+        key = f"{agent_a}-{agent_b}"
+        reverse_key = f"{agent_b}-{agent_a}"
+        
+        self.relationships[key] = relationship_type
+        self.relationships[reverse_key] = relationship_type
+        
+        # Set communication protocol based on relationship
+        if relationship_type == "cooperative":
+            protocol = "full_sharing"
+        elif relationship_type == "competitive":
+            protocol = "limited_sharing"
+        elif relationship_type == "hierarchical":
+            protocol = "command_structure"
+        else:
+            protocol = "minimal_sharing"
+        
+        self.communication_protocols[key] = protocol
+        self.communication_protocols[reverse_key] = protocol
+    
+    def get_relationship(self, agent_a: str, agent_b: str) -> str:
+        """Get the relationship type between two agents."""
+        key = f"{agent_a}-{agent_b}"
+        return self.relationships.get(key, "neutral")
+    
+    def can_communicate(self, agent_a: str, agent_b: str) -> bool:
+        """Check if two agents can communicate."""
+        relationship = self.get_relationship(agent_a, agent_b)
+        return relationship != "hostile"
+
+
+class GrimoireArchon(GoalSeeker):
+    """Strategic-level AI agent that manages multiple spirits."""
+    
+    def __init__(self, name: str, domain: str):
+        super().__init__()
+        self.name = name
+        self.domain = domain
+        self.spirits: List['GrimoireSpirit'] = []
+        self.resource_budget = 1000
+        self.strategic_goals: List[str] = []
+        self.methods: Dict[str, GrimoireFunction] = {}
+        self.state = "active"
+        
+        # Initialize domain-specific goals
+        self.initialize_strategic_goals()
+    
+    def initialize_strategic_goals(self):
+        """Initialize goals based on domain."""
+        if self.domain == "Combat":
+            self.add_goal("territorial_control", 10, 1.0, 0.8)
+            self.add_goal("force_projection", 8, 0.8, 0.7)
+            self.add_goal("resource_security", 6, 0.6, 0.6)
+        elif self.domain == "Economy":
+            self.add_goal("resource_maximization", 10, 1.0, 0.8)
+            self.add_goal("trade_expansion", 7, 0.7, 0.6)
+            self.add_goal("infrastructure_development", 5, 0.5, 0.5)
+        elif self.domain == "Diplomacy":
+            self.add_goal("alliance_building", 9, 0.9, 0.7)
+            self.add_goal("information_gathering", 8, 0.8, 0.6)
+            self.add_goal("reputation_management", 6, 0.6, 0.5)
+        else:
+            # General archon
+            self.add_goal("survival", 10, 1.0, 0.8)
+            self.add_goal("growth", 5, 0.5, 0.5)
+    
+    def summon_spirit(self, spirit_type: str, objectives: List[str]) -> 'GrimoireSpirit':
+        """Create and manage a new spirit."""
+        spirit = GrimoireSpirit(f"{self.name}_{spirit_type}_{len(self.spirits)}", spirit_type)
+        spirit.archon_ref = self
+        
+        # Assign objectives to spirit
+        for i, objective in enumerate(objectives):
+            spirit.add_goal(objective, 10 - i)
+        
+        self.spirits.append(spirit)
+        return spirit
+    
+    def autonomous_update(self):
+        """Perform autonomous strategic decision making."""
+        if self.state != "active":
+            return
+        
+        # Evaluate current strategic situation
+        priority_goal = self.get_priority_goal()
+        if priority_goal:
+            self.execute_strategic_action(priority_goal)
+        
+        # Update spirits
+        for spirit in self.spirits:
+            spirit.autonomous_update()
+        
+        # Resource allocation
+        self.allocate_resources()
+    
+    def execute_strategic_action(self, goal: Goal):
+        """Execute a strategic action to pursue a goal."""
+        # This would contain domain-specific strategic logic
+        # For now, we'll implement basic goal pursuit
+        if goal.name == "territorial_control":
+            self.expand_territory()
+        elif goal.name == "resource_maximization":
+            self.optimize_resource_gathering()
+        elif goal.name == "alliance_building":
+            self.seek_alliances()
+        
+        # Update goal satisfaction (simplified)
+        goal.current_satisfaction += 0.1
+    
+    def expand_territory(self):
+        """Strategic action: expand territorial control."""
+        # Summon combat spirits if needed
+        if len([s for s in self.spirits if s.spirit_type == "Guardian"]) < 2:
+            self.summon_spirit("Guardian", ["defend_territory", "patrol_borders"])
+    
+    def optimize_resource_gathering(self):
+        """Strategic action: optimize resource gathering."""
+        # Summon economic spirits if needed
+        if len([s for s in self.spirits if s.spirit_type == "Harvester"]) < 1:
+            self.summon_spirit("Harvester", ["gather_resources", "expand_operations"])
+    
+    def seek_alliances(self):
+        """Strategic action: seek diplomatic alliances."""
+        # This would involve inter-archon communication
+        pass
+    
+    def allocate_resources(self):
+        """Allocate resources among spirits."""
+        if self.resource_budget > 0 and self.spirits:
+            allocation_per_spirit = self.resource_budget // len(self.spirits)
+            for spirit in self.spirits:
+                spirit.resource_allocation = allocation_per_spirit
+
+
+class GrimoireSpirit(GoalSeeker):
+    """Tactical-level AI agent that manages multiple familiars."""
+    
+    def __init__(self, name: str, spirit_type: str, domain: str = "general"):
+        super().__init__()
+        self.name = name
+        self.spirit_type = spirit_type
+        self.domain = domain  # Spirit's domain of authority
+        self.archon_ref: Optional[GrimoireArchon] = None
+        self.familiars: List['GrimoireFamiliar'] = []
+        self.resource_allocation = 0
+        self.cooperation_network: List['GrimoireSpirit'] = []
+        self.methods: Dict[str, GrimoireFunction] = {}
+        self.state = "active"
+        self.pact_registry_ref: Optional[PactRegistry] = None
+        
+        # Pact management
+        self.pacts: Dict[str, Pact] = {}  # familiar_true_name -> pact
+        self.domain_rules: Dict[str, Any] = {}
+        
+        # Initialize type-specific behaviors and domain rules
+        self.initialize_tactical_behaviors()
+        self.initialize_domain_rules()
+    
+    def initialize_tactical_behaviors(self):
+        """Initialize behaviors based on spirit type."""
+        if self.spirit_type == "Guardian":
+            self.add_goal("defensive_positioning", 9, 0.9, 0.7)
+            self.add_goal("threat_assessment", 8, 0.8, 0.6)
+            self.add_goal("patrol_completion", 6, 0.6, 0.5)
+        elif self.spirit_type == "Scout":
+            self.add_goal("exploration_coverage", 10, 1.0, 0.8)
+            self.add_goal("information_gathering", 9, 0.9, 0.7)
+            self.add_goal("safe_return", 8, 0.8, 0.6)
+        elif self.spirit_type == "Harvester":
+            self.add_goal("resource_collection", 10, 1.0, 0.8)
+            self.add_goal("efficiency_optimization", 7, 0.7, 0.6)
+            self.add_goal("site_security", 6, 0.6, 0.5)
+        else:
+            # General spirit
+            self.add_goal("objective_completion", 8, 0.8, 0.6)
+            self.add_goal("familiar_coordination", 6, 0.6, 0.5)
+    
+    def initialize_domain_rules(self):
+        """Initialize domain-specific rules and authorities."""
+        if self.domain == "reality":
+            self.domain_rules = {
+                "enforce_physics": True,
+                "monitor_anomalies": True,
+                "correction_authority": ["position", "velocity", "state"]
+            }
+        elif self.domain == "security":
+            self.domain_rules = {
+                "access_control": True,
+                "threat_detection": True,
+                "correction_authority": ["permissions", "access_level", "security_state"]
+            }
+        elif self.domain == "resources":
+            self.domain_rules = {
+                "allocation_control": True,
+                "efficiency_monitoring": True,
+                "correction_authority": ["resource_usage", "allocation", "efficiency"]
+            }
+        elif self.domain == "communication":
+            self.domain_rules = {
+                "message_routing": True,
+                "protocol_enforcement": True,
+                "correction_authority": ["message_format", "routing", "protocol"]
+            }
+        else:
+            # General domain
+            self.domain_rules = {
+                "general_oversight": True,
+                "correction_authority": ["state", "behavior"]
+            }
+    
+    def spawn_familiar(self, familiar_type: str, objectives: List[str]) -> GrimoireFamiliar:
+        """Create and manage a new familiar without pact."""
+        capabilities = FAMILIAR_TYPES.get(familiar_type, lambda: {})()
+        familiar = GrimoireFamiliar(f"{self.name}_{familiar_type}_{len(self.familiars)}", familiar_type, capabilities)
+        familiar.spirit_ref = self
+        
+        self.familiars.append(familiar)
+        return familiar
+    
+    def create_familiar_with_pact(self, familiar_type: str, pact_terms: List[str], 
+                                  pact_conditions: Optional[Dict[str, Any]] = None) -> 'GrimoireFamiliar':
+        """Create a new familiar and establish a pact during initialization."""
+        capabilities = FAMILIAR_TYPES.get(familiar_type, lambda: {})()
+        familiar_name = f"{self.name}_{familiar_type}_{len(self.familiars)}"
+        
+        # Generate true name (immutable identifier)
+        import hashlib
+        true_name = hashlib.sha256(f"{familiar_name}_{self.name}_{__import__('time').time()}".encode()).hexdigest()[:16]
+        
+        familiar = GrimoireFamiliar(familiar_name, familiar_type, capabilities, true_name=true_name)
+        familiar.spirit_ref = self
+        
+        # Create pact during initialization (security requirement)
+        pact = Pact(
+            spirit_name=self.name,
+            familiar_true_name=true_name,
+            pact_terms=pact_terms,
+            domain=self.domain,
+            creation_timestamp=__import__('time').time(),
+            conditions=pact_conditions or {}
+        )
+        
+        # Register pact
+        if self.pact_registry_ref:
+            self.pact_registry_ref.register_pact(pact)
+        self.pacts[true_name] = pact
+        familiar.add_pact(pact)
+        
+        self.familiars.append(familiar)
+        return familiar
+    
+    def revoke_pact(self, familiar_true_name: str) -> str:
+        """Revoke a pact with a familiar."""
+        if familiar_true_name in self.pacts:
+            if self.pact_registry_ref:
+                self.pact_registry_ref.revoke_pact(self.name, familiar_true_name)
+            del self.pacts[familiar_true_name]
+            
+            # Find and update the familiar
+            for familiar in self.familiars:
+                if familiar.true_name == familiar_true_name:
+                    familiar.remove_pact(self.name)
+                    break
+            
+            return f"Pact revoked with {familiar_true_name}"
+        return f"No pact found with {familiar_true_name}"
+    
+    def invoke_pact(self, familiar_true_name: str, action: str, *args) -> Any:
+        """Invoke a pact to perform an action on a familiar."""
+        if familiar_true_name not in self.pacts:
+            raise NoPactError(f"No pact exists with {familiar_true_name}")
+        
+        pact = self.pacts[familiar_true_name]
+        if not pact.is_action_permitted(action):
+            raise ForbiddenActionError(f"Action '{action}' not permitted under pact with {familiar_true_name}")
+        
+        # Find the familiar
+        familiar = None
+        for f in self.familiars:
+            if f.true_name == familiar_true_name:
+                familiar = f
+                break
+        
+        if not familiar:
+            raise RuntimeError(f"Familiar with true name {familiar_true_name} not found")
+        
+        # Perform the action based on pact terms
+        if action == "command":
+            return familiar.command(args[0], list(args[1:]))
+        elif action == "modify_state":
+            familiar.properties.update(args[0])
+            return f"State modified for {familiar_true_name}"
+        elif action == "relocate":
+            familiar.properties["position"] = args[0]
+            return f"Relocated {familiar_true_name}"
+        elif action == "deactivate":
+            familiar.state = "inactive"
+            return f"Deactivated {familiar_true_name}"
+        elif action == "activate":
+            familiar.state = "active"
+            return f"Activated {familiar_true_name}"
+        else:
+            # Custom action - delegate to familiar
+            return familiar.execute_pact_action(action, args)
+    
+    def oversee_domain(self):
+        """Monitor familiars in domain and correct violations."""
+        violations_corrected = 0
+        
+        for familiar in self.familiars:
+            if familiar.true_name in self.pacts:
+                pact = self.pacts[familiar.true_name]
+                familiar_state = {
+                    "state": familiar.state,
+                    "position": familiar.properties.get("position"),
+                    "behavior": familiar.properties.get("current_behavior"),
+                    **familiar.properties
+                }
+                
+                if pact.violates_conditions(familiar_state):
+                    self.correct_familiar_state(familiar, pact)
+                    violations_corrected += 1
+        
+        return f"Domain oversight complete. {violations_corrected} violations corrected."
+    
+    def correct_familiar_state(self, familiar: 'GrimoireFamiliar', pact: Pact):
+        """Correct a familiar's state to comply with pact conditions."""
+        # Apply domain-specific corrections
+        correction_authority = self.domain_rules.get("correction_authority", [])
+        
+        for condition, expected_value in pact.conditions.items():
+            if condition in correction_authority:
+                if condition in familiar.properties:
+                    familiar.properties[condition] = expected_value
+                elif condition == "state":
+                    familiar.state = expected_value
+        
+        familiar.log_activity("domain_correction", 
+                            f"State corrected by spirit {self.name}",
+                            {"domain": self.domain, "corrections": pact.conditions})
+    
+    def autonomous_update(self):
+        """Perform autonomous tactical decision making."""
+        if self.state != "active":
+            return
+        
+        # Assess current situation
+        priority_goal = self.get_priority_goal()
+        if priority_goal:
+            self.execute_tactical_action(priority_goal)
+        
+        # Coordinate with peer spirits
+        for peer in self.cooperation_network:
+            self.coordinate_with(peer)
+        
+        # Update familiars
+        for familiar in self.familiars:
+            familiar.autonomous_update()
+        
+        # Report to archon
+        self.report_to_archon()
+    
+    def execute_tactical_action(self, goal: Goal):
+        """Execute a tactical action to pursue a goal."""
+        if goal.name == "defensive_positioning":
+            self.position_defensively()
+        elif goal.name == "exploration_coverage":
+            self.explore_area()
+        elif goal.name == "resource_collection":
+            self.collect_resources()
+        
+        # Update goal satisfaction
+        goal.current_satisfaction += 0.2
+    
+    def position_defensively(self):
+        """Tactical action: position familiars defensively."""
+        # Ensure we have scout familiars
+        if len([f for f in self.familiars if f.familiar_type == "Scout"]) < 1:
+            self.spawn_familiar("Scout", ["perimeter_patrol"])
+    
+    def explore_area(self):
+        """Tactical action: explore unknown areas."""
+        # Spawn scout familiars for exploration
+        if len([f for f in self.familiars if f.familiar_type == "Scout"]) < 2:
+            self.spawn_familiar("Scout", ["area_exploration"])
+    
+    def collect_resources(self):
+        """Tactical action: collect resources."""
+        # Spawn harvester familiars
+        if len([f for f in self.familiars if f.familiar_type == "Harvester"]) < 1:
+            self.spawn_familiar("Harvester", ["resource_collection"])
+    
+    def coordinate_with(self, other_spirit: 'GrimoireSpirit'):
+        """Coordinate actions with another spirit."""
+        # Find common goals
+        common_goals = set(g.name for g in self.goals) & set(g.name for g in other_spirit.goals)
+        
+        if common_goals:
+            # Negotiate joint action for first common goal
+            joint_goal = list(common_goals)[0]
+            self.negotiate_joint_action(other_spirit, joint_goal)
+    
+    def negotiate_joint_action(self, other_spirit: 'GrimoireSpirit', goal_name: str):
+        """Negotiate a joint action with another spirit."""
+        # Simple cooperation: share resource allocation
+        if self.resource_allocation > 0:
+            shared_resources = self.resource_allocation // 2
+            other_spirit.resource_allocation += shared_resources
+            self.resource_allocation -= shared_resources
+    
+    def report_to_archon(self):
+        """Report status to managing archon."""
+        if self.archon_ref:
+            # Update archon's goal satisfaction based on our progress
+            for goal in self.goals:
+                if goal.current_satisfaction > 0.5:
+                    # Find corresponding archon goal and update it
+                    for archon_goal in self.archon_ref.goals:
+                        if self.is_related_goal(goal.name, archon_goal.name):
+                            archon_goal.current_satisfaction += 0.05
+                            break
+    
+    def is_related_goal(self, spirit_goal: str, archon_goal: str) -> bool:
+        """Check if a spirit goal relates to an archon goal."""
+        # Simplified relationship mapping
+        relations = {
+            "defensive_positioning": ["territorial_control", "force_projection"],
+            "exploration_coverage": ["territorial_control", "information_gathering"],
+            "resource_collection": ["resource_maximization", "resource_security"]
+        }
+        
+        return archon_goal in relations.get(spirit_goal, [])
+
+
+# Enhanced Familiar with Spirit Integration and Reporting
+class GrimoireFamiliar:
+    """Represents a runtime familiar - a semi-autonomous agent."""
+    
+    def __init__(self, name: str, familiar_type: str, capabilities: Dict[str, FamiliarCapability], true_name: Optional[str] = None):
+        self.name = name
+        self.familiar_type = familiar_type
+        self.capabilities = capabilities
+        
+        # True name - immutable identifier for pact security
+        if true_name:
+            self.true_name = true_name
+        else:
+            # Generate true name automatically if not provided
+            import hashlib
+            self.true_name = hashlib.sha256(f"{name}_{familiar_type}_{__import__('time').time()}".encode()).hexdigest()[:16]
+        
+        self.charge = None  # The entity this familiar manages
+        self.spirit_ref: Optional[GrimoireSpirit] = None  # Reference to managing spirit
+        self.wrangler_ref: Optional[FamiliarWrangler] = None  # Reference to wrangler
+        self.state = "active"  # active, inactive, dismissed
+        self.properties = {}
+        self.reactive_behaviors = []
+        self.interaction_protocols = []
+        
+        # Pact system - familiars can have multiple pacts with different spirits
+        self.pacts: Dict[str, Pact] = {}  # spirit_name -> pact
+        
+        # Reporting system
+        self.is_reporting = False
+        self.report_type = "none"  # "none", "all", "self", "inter", "environmental", "command"
+        self.activity_log: List[Activity] = []
+        
+        # Initialize reactive behaviors
+        self.initialize_reactive_behaviors()
+    
+    def initialize_reactive_behaviors(self):
+        """Initialize reactive behaviors based on type."""
+        if self.familiar_type == "Scout":
+            self.reactive_behaviors.extend(["proximity_response", "threat_detection", "path_finding"])
+        elif self.familiar_type == "Harvester":
+            self.reactive_behaviors.extend(["resource_seeking", "efficiency_optimization", "storage_management"])
+        elif self.familiar_type == "Guardian":
+            self.reactive_behaviors.extend(["threat_assessment", "defensive_positioning", "ally_protection"])
+        else:
+            # Default behaviors
+            self.reactive_behaviors.extend(["proximity_response", "basic_navigation"])
+    
+    def autonomous_update(self):
+        """Perform autonomous operational-level actions."""
+        if self.state != "active":
+            return
+        
+        self.log_activity("self", "Starting autonomous update", {"behaviors": len(self.reactive_behaviors)})
+        
+        # Execute reactive behaviors
+        for behavior in self.reactive_behaviors:
+            self.execute_reactive_behavior(behavior)
+        
+        # Interact with nearby agents
+        self.interact_with_nearby_agents()
+        
+        # Report to spirit
+        self.report_to_spirit()
+        
+        self.log_activity("self", "Completed autonomous update", {})
+    
+    def execute_reactive_behavior(self, behavior: str):
+        """Execute a reactive behavior."""
+        if behavior == "proximity_response":
+            self.respond_to_proximity()
+        elif behavior == "threat_detection":
+            self.detect_threats()
+        elif behavior == "resource_seeking":
+            self.seek_resources()
+        elif behavior == "efficiency_optimization":
+            self.optimize_efficiency()
+    
+    def respond_to_proximity(self):
+        """React to nearby entities."""
+        # Simplified proximity response
+        pass
+    
+    def detect_threats(self):
+        """Detect and respond to threats."""
+        # Simplified threat detection
+        pass
+    
+    def seek_resources(self):
+        """Seek out resources to collect."""
+        # Simplified resource seeking
+        pass
+    
+    def optimize_efficiency(self):
+        """Optimize operational efficiency."""
+        # Simplified efficiency optimization
+        pass
+    
+    def interact_with_nearby_agents(self):
+        """Interact with nearby familiars and spirits."""
+        # Simplified agent interaction
+        pass
+    
+    def report_to_spirit(self):
+        """Report status to managing spirit."""
+        if self.spirit_ref:
+            # Update spirit's goal satisfaction based on our actions
+            for goal in self.spirit_ref.goals:
+                if self.contributes_to_goal(goal.name):
+                    goal.current_satisfaction += 0.01
+    
+    def contributes_to_goal(self, goal_name: str) -> bool:
+        """Check if this familiar contributes to a goal."""
+        # Simplified goal contribution mapping
+        contributions = {
+            "Scout": ["exploration_coverage", "information_gathering", "threat_assessment"],
+            "Harvester": ["resource_collection", "efficiency_optimization"],
+            "Guardian": ["defensive_positioning", "threat_assessment", "patrol_completion"]
+        }
+        
+        return goal_name in contributions.get(self.familiar_type, [])
+    
+    def command(self, command: str, arguments: List[Any]) -> Any:
+        """Execute a command on this familiar."""
+        if self.state != "active":
+            raise RuntimeError(f"Familiar {self.name} is not active")
+        
+        self.log_activity("command", f"Executing command: {command}", {"arguments": arguments})
+        
+        # Handle built-in commands
+        if command == "activate":
+            self.state = "active"
+            self.log_activity("self", "Activated", {"previous_state": "inactive"})
+            return f"Familiar {self.name} activated"
+        elif command == "deactivate":
+            self.state = "inactive"
+            self.log_activity("self", "Deactivated", {"previous_state": "active"})
+            return f"Familiar {self.name} deactivated"
+        elif command == "set_charge":
+            if len(arguments) != 1:
+                raise RuntimeError("set_charge expects 1 argument (entity)")
+            old_charge = self.charge
+            self.charge = arguments[0]
+            self.log_activity("self", "Charge assigned", {"old_charge": old_charge, "new_charge": self.charge})
+            return f"Familiar {self.name} now manages {self.charge}"
+        
+        # Look for capability that can handle this command
+        for capability in self.capabilities.values():
+            try:
+                result = capability.execute(command, arguments)
+                self.log_activity("command", f"Command executed successfully: {command}", {"result": result})
+                return result
+            except RuntimeError:
+                continue
+        
+        self.log_activity("command", f"Command failed: {command}", {"error": "unknown command"})
+        raise RuntimeError(f"Unknown command '{command}' for familiar {self.name}")
+    
+    def inquire(self, query: str) -> Any:
+        """Handle an inquiry about the familiar's state."""
+        if self.state != "active":
+            raise RuntimeError(f"Familiar {self.name} is not active")
+        
+        # Handle built-in queries
+        if query == "state":
+            return self.state
+        elif query == "type":
+            return self.familiar_type
+        elif query == "charge":
+            return self.charge
+        elif query == "capabilities":
+            return list(self.capabilities.keys())
+        elif query == "spirit":
+            return self.spirit_ref.name if self.spirit_ref else None
+        
+        # Look for capability that can handle this query
+        for capability in self.capabilities.values():
+            try:
+                return capability.inquire(query)
+            except RuntimeError:
+                continue
+        
+        raise RuntimeError(f"Unknown query '{query}' for familiar {self.name}")
+    
+    def dismiss(self) -> str:
+        """Dismiss this familiar."""
+        self.state = "dismissed"
+        self.disable_reporting()
+        return f"Familiar {self.name} dismissed"
+    
+    # =============================================================================
+    # Reporting System Methods
+    # =============================================================================
+    
+    def enable_reporting(self, report_type: str = "all") -> str:
+        """Enable activity reporting for this familiar."""
+        self.is_reporting = True
+        self.report_type = report_type
+        self.log_activity("self", f"Reporting enabled (type: {report_type})", {"previous_state": "disabled"})
+        return f"Reporting enabled for {self.name}"
+    
+    def disable_reporting(self) -> str:
+        """Disable activity reporting for this familiar."""
+        if self.is_reporting:
+            self.log_activity("self", "Reporting disabled", {"activities_logged": len(self.activity_log)})
+        self.is_reporting = False
+        self.report_type = "none"
+        return f"Reporting disabled for {self.name}"
+    
+    def is_reporting_enabled(self) -> bool:
+        """Check if reporting is currently enabled."""
+        return self.is_reporting and self.state == "active"
+    
+    def log_activity(self, activity_type: str, description: str, details: Optional[Dict[str, Any]] = None) -> None:
+        """Log an activity if reporting is enabled."""
+        if not self.is_reporting:
+            return
+        
+        # Check if this activity type should be logged based on report_type
+        should_log = False
+        
+        if self.report_type == "all":
+            should_log = True
+        elif self.report_type == "self" and activity_type == "self":
+            should_log = True
+        elif self.report_type == "inter" and activity_type == "inter_familiar":
+            should_log = True
+        elif self.report_type == "environmental" and activity_type == "environmental":
+            should_log = True
+        elif self.report_type == "command" and activity_type == "command":
+            should_log = True
+        elif self.report_type == activity_type:  # Exact match
+            should_log = True
+        
+        if should_log:
+            activity = Activity(
+                timestamp=__import__('time').time(),
+                familiar_name=self.name,
+                activity_type=activity_type,
+                description=description,
+                details=details or {}
+            )
+            self.activity_log.append(activity)
+            
+            # Limit activity log size to prevent memory issues
+            if len(self.activity_log) > 1000:
+                self.activity_log = self.activity_log[-500:]  # Keep last 500 activities
+    
+    def get_report(self) -> List[Activity]:
+        """Get the current activity report."""
+        return self.activity_log.copy()
+    
+    def clear_activity_log(self) -> str:
+        """Clear the activity log."""
+        cleared_count = len(self.activity_log)
+        self.activity_log.clear()
+        return f"Cleared {cleared_count} activities from {self.name}"
+    
+    def get_activity_summary(self) -> Dict[str, Any]:
+        """Get a summary of logged activities."""
+        if not self.activity_log:
+            return {"total": 0, "by_type": {}, "latest": None}
+        
+        by_type = {}
+        for activity in self.activity_log:
+            by_type[activity.activity_type] = by_type.get(activity.activity_type, 0) + 1
+        
+        return {
+            "total": len(self.activity_log),
+            "by_type": by_type,
+            "latest": self.activity_log[-1].description if self.activity_log else None,
+            "reporting_type": self.report_type,
+            "is_reporting": self.is_reporting
+        }
+    
+    # =============================================================================
+    # Pact System Methods
+    # =============================================================================
+    
+    def add_pact(self, pact: Pact) -> str:
+        """Add a pact with a spirit (only during initialization)."""
+        if pact.spirit_name in self.pacts:
+            return f"Pact with {pact.spirit_name} already exists"
+        
+        self.pacts[pact.spirit_name] = pact
+        self.log_activity("pact", f"Pact established with spirit {pact.spirit_name}", 
+                         {"domain": pact.domain, "terms": pact.pact_terms})
+        return f"Pact established with spirit {pact.spirit_name}"
+    
+    def remove_pact(self, spirit_name: str) -> str:
+        """Remove a pact with a spirit."""
+        if spirit_name in self.pacts:
+            del self.pacts[spirit_name]
+            self.log_activity("pact", f"Pact removed with spirit {spirit_name}", {})
+            return f"Pact removed with spirit {spirit_name}"
+        return f"No pact found with spirit {spirit_name}"
+    
+    def has_pact_with(self, spirit_name: str) -> bool:
+        """Check if this familiar has a pact with a specific spirit."""
+        return spirit_name in self.pacts
+    
+    def get_pact_terms(self, spirit_name: str) -> List[str]:
+        """Get the terms of a pact with a specific spirit."""
+        if spirit_name in self.pacts:
+            return self.pacts[spirit_name].pact_terms
+        return []
+    
+    def execute_pact_action(self, action: str, args: tuple) -> Any:
+        """Execute a custom pact action."""
+        self.log_activity("pact_action", f"Executing pact action: {action}", {"args": args})
+        
+        # Custom actions can be implemented here based on familiar type
+        if action == "transform_state":
+            old_state = self.state
+            self.state = args[0] if args else "transformed"
+            return f"State transformed from {old_state} to {self.state}"
+        elif action == "modify_behavior":
+            behavior_name = args[0] if args else "default"
+            if behavior_name not in self.reactive_behaviors:
+                self.reactive_behaviors.append(behavior_name)
+            return f"Behavior {behavior_name} added"
+        elif action == "grant_capability":
+            capability_name = args[0] if args else "generic"
+            # This would add new capabilities to the familiar
+            return f"Capability {capability_name} granted"
+        else:
+            return f"Unknown pact action: {action}"
+    
+    def get_pact_summary(self) -> Dict[str, Any]:
+        """Get a summary of all pacts for this familiar."""
+        return {
+            "true_name": self.true_name,
+            "total_pacts": len(self.pacts),
+            "spirit_pacts": {
+                spirit_name: {
+                    "domain": pact.domain,
+                    "terms": pact.pact_terms,
+                    "creation_time": pact.creation_timestamp
+                }
+                for spirit_name, pact in self.pacts.items()
+            }
+        }
+
+
+# Built-in familiar types
+FAMILIAR_TYPES = {
+    "MemoryImp": lambda: {"memory": MemoryImpCapability()},
+    "FileSprite": lambda: {"file": FileSpriteCapability()},
+    "LogScribe": lambda: {"log": LogScribeCapability()},
+    "Scout": lambda: {},  # Operational scouting
+    "Harvester": lambda: {},  # Resource collection
+    "Guardian": lambda: {},  # Defensive operations
+    "TimeKeeper": lambda: {},  # TODO: Implement time-based capabilities
+    "ErrorBanshee": lambda: {},  # TODO: Implement error handling capabilities
+}
+
+
 @dataclass
 class BoundMethod:
     """Represents a method bound to an instance."""
@@ -174,6 +1441,12 @@ class GrimoireInterpreter:
     def __init__(self):
         self.globals = Environment()
         self.environment = self.globals
+        self.familiars = {}  # Active familiars
+        self.archons = {}   # Active archons
+        self.spirits = {}   # Active spirits
+        self.interaction_matrix = InteractionMatrix()  # Agent relationships
+        self.familiar_wrangler = FamiliarWrangler()  # Familiar monitoring system
+        self.pact_registry = PactRegistry()  # Global pact registry
         
         # Define built-in functions
         self._define_builtins()
@@ -187,7 +1460,219 @@ class GrimoireInterpreter:
             print(self._grimoire_to_string(arguments[0]))
             return None
         
+        # Built-in summon function for creating familiars
+        def summon_builtin(interpreter, arguments):
+            if len(arguments) < 1:
+                raise RuntimeError("summon expects at least 1 argument (familiar type)")
+            familiar_type = arguments[0]
+            familiar_name = arguments[1] if len(arguments) > 1 else f"{familiar_type.lower()}_familiar"
+            
+            if familiar_type not in FAMILIAR_TYPES:
+                raise RuntimeError(f"Unknown familiar type: {familiar_type}")
+            
+            capabilities = FAMILIAR_TYPES[familiar_type]()
+            familiar = GrimoireFamiliar(familiar_name, familiar_type, capabilities)
+            self.familiars[familiar_name] = familiar
+            
+            # Automatically register with wrangler
+            self.familiar_wrangler.register_familiar(familiar)
+            
+            return familiar
+        
+        # Built-in function for creating archons
+        def create_archon_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("create_archon expects 2 arguments (name, domain)")
+            archon_name = arguments[0]
+            domain = arguments[1]
+            
+            archon = GrimoireArchon(archon_name, domain)
+            self.archons[archon_name] = archon
+            return archon
+        
+        # Built-in function for creating spirits
+        def create_spirit_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("create_spirit expects 2 arguments (name, spirit_type)")
+            spirit_name = arguments[0]
+            spirit_type = arguments[1]
+            domain = arguments[2] if len(arguments) > 2 else "general"
+            
+            spirit = GrimoireSpirit(spirit_name, spirit_type, domain)
+            spirit.pact_registry_ref = self.pact_registry
+            self.spirits[spirit_name] = spirit
+            return spirit
+        
+        # Built-in function for autonomous updates
+        def autonomous_update_builtin(interpreter, arguments):
+            # Update all agents autonomously
+            for archon in self.archons.values():
+                archon.autonomous_update()
+            for spirit in self.spirits.values():
+                spirit.autonomous_update()
+            for familiar in self.familiars.values():
+                familiar.autonomous_update()
+            return "Autonomous update completed"
+        
+        # Built-in wrangler functions
+        def create_wrangler_builtin(interpreter, arguments):
+            # Wrangler is already created, just return it
+            return self.familiar_wrangler
+        
+        def register_familiar_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("register_familiar expects 1 argument (familiar)")
+            familiar = arguments[0]
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("Argument must be a familiar")
+            return self.familiar_wrangler.register_familiar(familiar)
+        
+        def enable_reporting_builtin(interpreter, arguments):
+            if len(arguments) < 1:
+                raise RuntimeError("enable_reporting expects at least 1 argument (familiar)")
+            familiar = arguments[0]
+            report_type = arguments[1] if len(arguments) > 1 else "all"
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("First argument must be a familiar")
+            return self.familiar_wrangler.enable_reporting(familiar, report_type)
+        
+        def disable_reporting_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("disable_reporting expects 1 argument (familiar)")
+            familiar = arguments[0]
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("Argument must be a familiar")
+            return self.familiar_wrangler.disable_reporting(familiar)
+        
+        def get_wrangler_report_builtin(interpreter, arguments):
+            familiar_name = arguments[0] if len(arguments) > 0 else None
+            report = self.familiar_wrangler.get_report(familiar_name)
+            # Convert activities to strings for display
+            return [f"[{a.timestamp:.2f}] {a.familiar_name}: {a.description} ({a.activity_type})" for a in report]
+        
+        def get_wrangler_summary_builtin(interpreter, arguments):
+            return self.familiar_wrangler.get_summary()
+        
+        def clear_wrangler_reports_builtin(interpreter, arguments):
+            familiar_name = arguments[0] if len(arguments) > 0 else None
+            return self.familiar_wrangler.clear_reports(familiar_name)
+        
+        def enable_all_reporting_builtin(interpreter, arguments):
+            report_type = arguments[0] if len(arguments) > 0 else "all"
+            return self.familiar_wrangler.enable_all_reporting(report_type)
+        
+        def disable_all_reporting_builtin(interpreter, arguments):
+            return self.familiar_wrangler.disable_all_reporting()
+        
+        def get_familiar_stats_builtin(interpreter, arguments):
+            return self.familiar_wrangler.get_familiar_stats()
+        
+        # Pact system functions
+        def create_familiar_with_pact_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError("create_familiar_with_pact expects at least 3 arguments (spirit, familiar_type, pact_terms)")
+            spirit = arguments[0]
+            familiar_type = arguments[1]
+            pact_terms = arguments[2] if isinstance(arguments[2], list) else [arguments[2]]
+            pact_conditions = arguments[3] if len(arguments) > 3 else {}
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("First argument must be a spirit")
+            
+            return spirit.create_familiar_with_pact(familiar_type, pact_terms, pact_conditions)
+        
+        def invoke_pact_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError("invoke_pact expects at least 3 arguments (spirit, familiar_true_name, action)")
+            spirit = arguments[0]
+            familiar_true_name = arguments[1]
+            action = arguments[2]
+            additional_args = arguments[3:] if len(arguments) > 3 else []
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("First argument must be a spirit")
+            
+            return spirit.invoke_pact(familiar_true_name, action, *additional_args)
+        
+        def revoke_pact_builtin(interpreter, arguments):
+            if len(arguments) != 2:
+                raise RuntimeError("revoke_pact expects 2 arguments (spirit, familiar_true_name)")
+            spirit = arguments[0]
+            familiar_true_name = arguments[1]
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("First argument must be a spirit")
+            
+            return spirit.revoke_pact(familiar_true_name)
+        
+        def oversee_domain_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("oversee_domain expects 1 argument (spirit)")
+            spirit = arguments[0]
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("Argument must be a spirit")
+            
+            return spirit.oversee_domain()
+        
+        def get_pact_summary_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("get_pact_summary expects 1 argument (familiar)")
+            familiar = arguments[0]
+            
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("Argument must be a familiar")
+            
+            return familiar.get_pact_summary()
+        
+        def get_spirit_pacts_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("get_spirit_pacts expects 1 argument (spirit)")
+            spirit = arguments[0]
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("Argument must be a spirit")
+            
+            # Return a simplified view of pacts
+            return {
+                "spirit_name": spirit.name,
+                "domain": spirit.domain,
+                "total_pacts": len(spirit.pacts),
+                "familiar_pacts": {
+                    true_name: {
+                        "terms": pact.pact_terms,
+                        "domain": pact.domain,
+                        "creation_time": pact.creation_timestamp
+                    }
+                    for true_name, pact in spirit.pacts.items()
+                }
+            }
+        
         self.globals.define("scry", scry_builtin)
+        self.globals.define("summon", summon_builtin)
+        self.globals.define("create_archon", create_archon_builtin)
+        self.globals.define("create_spirit", create_spirit_builtin)
+        self.globals.define("autonomous_update", autonomous_update_builtin)
+        
+        # Wrangler functions
+        self.globals.define("create_wrangler", create_wrangler_builtin)
+        self.globals.define("register_familiar", register_familiar_builtin)
+        self.globals.define("enable_reporting", enable_reporting_builtin)
+        self.globals.define("disable_reporting", disable_reporting_builtin)
+        self.globals.define("get_wrangler_report", get_wrangler_report_builtin)
+        self.globals.define("get_wrangler_summary", get_wrangler_summary_builtin)
+        self.globals.define("clear_wrangler_reports", clear_wrangler_reports_builtin)
+        self.globals.define("enable_all_reporting", enable_all_reporting_builtin)
+        self.globals.define("disable_all_reporting", disable_all_reporting_builtin)
+        self.globals.define("get_familiar_stats", get_familiar_stats_builtin)
+        
+        # Pact system functions
+        self.globals.define("create_familiar_with_pact", create_familiar_with_pact_builtin)
+        self.globals.define("invoke_pact", invoke_pact_builtin)
+        self.globals.define("revoke_pact", revoke_pact_builtin)
+        self.globals.define("oversee_domain", oversee_domain_builtin)
+        self.globals.define("get_pact_summary", get_pact_summary_builtin)
+        self.globals.define("get_spirit_pacts", get_spirit_pacts_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
@@ -203,6 +1688,12 @@ class GrimoireInterpreter:
             return f"<artifact {value.name}>"
         elif isinstance(value, GrimoireFunction):
             return f"<ritual {value.name}>"
+        elif isinstance(value, GrimoireFamiliar):
+            return f"<familiar {value.name} ({value.familiar_type})>"
+        elif isinstance(value, GrimoireSpirit):
+            return f"<spirit {value.name} ({value.spirit_type}) domain:{value.domain}>"
+        elif isinstance(value, GrimoireArchon):
+            return f"<archon {value.name} domain:{value.domain}>"
         else:
             return str(value)
     
@@ -296,12 +1787,7 @@ class GrimoireInterpreter:
             self.environment.define(statement.name, artifact)
         
         elif isinstance(statement, FamiliarStatement):
-            # For now, treat familiars like artifacts
-            # TODO: Implement familiar-specific behavior
-            superclass = None
-            if statement.superclass:
-                superclass = self.environment.get(statement.superclass)
-            
+            # Handle familiar definitions - create a familiar type
             methods = {}
             for method in statement.methods:
                 methods[method.name] = GrimoireFunction(
@@ -311,8 +1797,24 @@ class GrimoireInterpreter:
                     self.environment
                 )
             
-            familiar = GrimoireClass(statement.name, superclass, methods)
-            self.environment.define(statement.name, familiar)
+            # For now, treat custom familiar definitions as creating a new familiar type
+            # This is a simplified approach - in a full implementation, you'd want
+            # to create a proper familiar class system
+            familiar_class = GrimoireClass(statement.name, None, methods)
+            self.environment.define(statement.name, familiar_class)
+        
+        elif isinstance(statement, CommandStatement):
+            # Handle familiar commands
+            familiar_expr = self.evaluate(statement.familiar)
+            
+            if isinstance(familiar_expr, GrimoireFamiliar):
+                arguments = [self.evaluate(arg) for arg in statement.arguments]
+                result = familiar_expr.command(statement.command, arguments)
+                # Command results are usually printed or stored somewhere
+                if result is not None:
+                    print(self._grimoire_to_string(result))
+            else:
+                raise RuntimeError(f"Can only command familiars, not {type(familiar_expr)}")
         
         else:
             raise RuntimeError(f"Unknown statement type: {type(statement)}")
@@ -413,8 +1915,11 @@ class GrimoireInterpreter:
             
             if isinstance(obj, GrimoireInstance):
                 return obj.get(expression.property)
+            elif isinstance(obj, GrimoireFamiliar):
+                # Handle familiar property access for inquiries
+                return obj.inquire(expression.property)
             else:
-                raise RuntimeError("Only instances have properties")
+                raise RuntimeError("Only instances and familiars have properties")
         
         elif isinstance(expression, ConjureExpression):
             artifact_class = self.environment.get(expression.artifact_type)
@@ -504,10 +2009,10 @@ if __name__ == "__main__":
             scry $SCROLL(A wizard named ) added to wizard_name added to $SCROLL( appears!)
         
         ritual cast_spell():
-            if enchanted self.mana is greater than 10:
+            should self.mana is greater than 10:
                 diminish self.mana by 10
                 scry $SCROLL(Spell cast! Remaining mana: ) added to self.mana
-            else cursed:
+            lest:
                 scry $SCROLL(Not enough mana!)
     
     greet upon $SCROLL(World)

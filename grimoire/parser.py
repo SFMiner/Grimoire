@@ -196,6 +196,26 @@ class FamiliarStatement(Statement):
 
 
 @dataclass
+class ArchonStatement(Statement):
+    """Represents archon definitions."""
+    name: str
+    domain: str
+    superclass: Optional[str]
+    methods: List[RitualStatement]
+    essences: List[BindStatement]
+
+
+@dataclass
+class SpiritStatement(Statement):
+    """Represents spirit definitions."""
+    name: str
+    spirit_type: str
+    superclass: Optional[str]
+    methods: List[RitualStatement]
+    essences: List[BindStatement]
+
+
+@dataclass
 class PlaneStatement(Statement):
     """Represents plane definitions."""
     name: str
@@ -320,7 +340,8 @@ class GrimoireParser:
             
             if self.peek().type in [
                 TokenType.RITUAL, TokenType.ARTIFACT, TokenType.FAMILIAR,
-                TokenType.BIND, TokenType.SHOULD, TokenType.WHILE_CHARGED,
+                TokenType.ARCHON, TokenType.SPIRIT, TokenType.BIND, 
+                TokenType.SHOULD, TokenType.WHILE_CHARGED,
                 TokenType.FOR_EACH, TokenType.RETURN, TokenType.SCRY
             ]:
                 return
@@ -340,6 +361,10 @@ class GrimoireParser:
                 return self.artifact_declaration()
             if self.match(TokenType.FAMILIAR):
                 return self.familiar_declaration()
+            if self.match(TokenType.ARCHON):
+                return self.archon_declaration()
+            if self.match(TokenType.SPIRIT):
+                return self.spirit_declaration()
             if self.match(TokenType.PLANE):
                 return self.plane_declaration()
             if self.match(TokenType.EFFECT):
@@ -449,6 +474,88 @@ class GrimoireParser:
         
         return FamiliarStatement(name, superclass, methods, essences)
     
+    def archon_declaration(self) -> ArchonStatement:
+        """Parse archon declarations."""
+        name = self.consume(TokenType.IDENTIFIER, "Expected archon name").lexeme
+        
+        # Parse domain specification (archon Name domain DomainType:)
+        domain = "general"
+        if self.check(TokenType.IDENTIFIER):
+            domain_keyword = self.advance().lexeme
+            if domain_keyword == "domain":
+                domain = self.consume(TokenType.IDENTIFIER, "Expected domain type").lexeme
+        
+        superclass = None
+        # For now, we'll just handle archon Name domain Domain: syntax
+        
+        self.consume(TokenType.COLON, "Expected ':' before archon body")
+        
+        # Skip newlines
+        while self.match(TokenType.NEWLINE):
+            pass
+        
+        methods = []
+        essences = []
+        
+        # Parse archon body (similar to artifact)
+        while not self.check(TokenType.EOF) and not self.check_next_declaration():
+            if self.match(TokenType.NEWLINE):
+                continue
+            
+            if self.check(TokenType.RITUAL):
+                # Don't advance here - let declaration() handle it
+                stmt = self.declaration()
+                if isinstance(stmt, RitualStatement):
+                    methods.append(stmt)
+            elif self.check(TokenType.ESSENCE):
+                self.advance()
+                essences.append(self.essence_declaration())
+            else:
+                break
+        
+        return ArchonStatement(name, domain, superclass, methods, essences)
+    
+    def spirit_declaration(self) -> SpiritStatement:
+        """Parse spirit declarations."""
+        name = self.consume(TokenType.IDENTIFIER, "Expected spirit name").lexeme
+        
+        # Parse spirit type specification (spirit Name type SpiritType:)
+        spirit_type = "general"
+        if self.check(TokenType.IDENTIFIER):
+            type_keyword = self.advance().lexeme
+            if type_keyword == "type":
+                spirit_type = self.consume(TokenType.IDENTIFIER, "Expected spirit type").lexeme
+        
+        superclass = None
+        # For now, we'll just handle spirit Name type Type: syntax
+        
+        self.consume(TokenType.COLON, "Expected ':' before spirit body")
+        
+        # Skip newlines
+        while self.match(TokenType.NEWLINE):
+            pass
+        
+        methods = []
+        essences = []
+        
+        # Parse spirit body (similar to artifact)
+        while not self.check(TokenType.EOF) and not self.check_next_declaration():
+            if self.match(TokenType.NEWLINE):
+                continue
+            
+            if self.check(TokenType.RITUAL):
+                # Don't advance here - let declaration() handle it
+                stmt = self.declaration()
+                if isinstance(stmt, RitualStatement):
+                    methods.append(stmt)
+            elif self.check(TokenType.ESSENCE):
+                self.advance()
+                essences.append(self.essence_declaration())
+            else:
+                break
+        
+        return SpiritStatement(name, spirit_type, superclass, methods, essences)
+    
     def plane_declaration(self) -> PlaneStatement:
         """Parse plane declarations."""
         name = self.consume(TokenType.IDENTIFIER, "Expected plane name").lexeme
@@ -479,7 +586,8 @@ class GrimoireParser:
     def check_next_declaration(self) -> bool:
         """Check if we're at the start of a new declaration."""
         return self.check(TokenType.RITUAL) or self.check(TokenType.ARTIFACT) or \
-               self.check(TokenType.FAMILIAR) or self.check(TokenType.PLANE) or \
+               self.check(TokenType.FAMILIAR) or self.check(TokenType.ARCHON) or \
+               self.check(TokenType.SPIRIT) or self.check(TokenType.PLANE) or \
                self.check(TokenType.EFFECT)
     
     def statement(self) -> Statement:
@@ -577,7 +685,8 @@ class GrimoireParser:
             # Check if we're still in the indented block
             # Simple heuristic: if we see these tokens, we've left the block
             if (self.check(TokenType.RITUAL) or self.check(TokenType.ARTIFACT) or 
-                self.check(TokenType.FAMILIAR) or self.check(TokenType.PLANE) or
+                self.check(TokenType.FAMILIAR) or self.check(TokenType.ARCHON) or
+                self.check(TokenType.SPIRIT) or self.check(TokenType.PLANE) or
                 self.check(TokenType.EFFECT)):
                 break
             
@@ -666,7 +775,8 @@ class GrimoireParser:
             if not expects_brace:
                 # Simple heuristic: stop if we see a top-level declaration or EOF
                 if (self.check(TokenType.RITUAL) or self.check(TokenType.ARTIFACT) or 
-                    self.check(TokenType.FAMILIAR) or self.check(TokenType.PLANE) or
+                    self.check(TokenType.FAMILIAR) or self.check(TokenType.ARCHON) or
+                    self.check(TokenType.SPIRIT) or self.check(TokenType.PLANE) or
                     self.check(TokenType.EFFECT)):
                     break
                 # Also stop if we encounter an identifier that might be a top-level call
