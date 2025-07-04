@@ -2078,6 +2078,38 @@ class GrimoireInterpreter:
             fam, amt = arguments
             return _apply_damage(fam, float(amt))
 
+        # Game loop helpers -------------------------------------------------
+        def start_game_loop_builtin(interpreter, arguments):
+            from grimoire.game.loop import GameLoopFamiliar
+            loop_type = arguments[0] if len(arguments) > 0 else 'real_time'
+            rate = int(arguments[1]) if len(arguments) > 1 else 60
+            loop = GameLoopFamiliar('game_loop', loop_type, rate)
+            self.familiars['game_loop'] = loop
+            loop.start()
+            return loop
+
+        def schedule_event_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError('schedule_event expects (game_loop, delay, callable, *args)')
+            loop, delay, func, *rest = arguments
+            from grimoire.game.loop import GameLoopFamiliar
+            if not isinstance(loop, GameLoopFamiliar):
+                raise RuntimeError('First arg must be a GameLoop familiar')
+            loop.schedule(float(delay), func, *rest)
+            return 'event scheduled'
+
+        def pause_game_builtin(interpreter, arguments):
+            loop = self.familiars.get('game_loop')
+            if loop:
+                return loop.pause()
+            return 'no game loop'
+
+        def resume_game_builtin(interpreter, arguments):
+            loop = self.familiars.get('game_loop')
+            if loop:
+                return loop.resume()
+            return 'no game loop'
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2115,6 +2147,10 @@ class GrimoireInterpreter:
         self.globals.define("add_action", add_action_builtin)
         self.globals.define("update_ai", update_ai_builtin)
         self.globals.define("apply_damage", apply_damage_builtin)
+        self.globals.define('start_game_loop', start_game_loop_builtin)
+        self.globals.define('schedule_event', schedule_event_builtin)
+        self.globals.define('pause_game', pause_game_builtin)
+        self.globals.define('resume_game', resume_game_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
