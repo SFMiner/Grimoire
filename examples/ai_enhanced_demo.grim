@@ -1,0 +1,49 @@
+# Enhanced AI System Demo - Grimoire Programming Language
+# This demonstrates the sophisticated AI decision-making capabilities
+
+ritual main():
+    scry $SCROLL(=== Enhanced AI System Demo ===)
+    
+    # Create intelligent archons with different domains
+    bind combat_archon = create_archon upon $SCROLL(WarMaster), $SCROLL(Combat)
+    bind economy_archon = create_archon upon $SCROLL(TradeLord), $SCROLL(Economy)
+    
+    scry $SCROLL(Created strategic archons with enhanced AI)
+    
+    # Create tactical spirits under the archons
+    bind guardian_spirit = create_spirit upon $SCROLL(EliteGuard), $SCROLL(Guardian)
+    bind merchant_spirit = create_spirit upon $SCROLL(GoldSeeker), $SCROLL(Harvester)
+    
+    scry $SCROLL(Created tactical spirits with domain specialization)
+    
+    # Demonstrate AI decision-making through autonomous updates
+    scry $SCROLL(Beginning AI Decision Cycles)
+    
+    bind update_result1 = autonomous_update upon
+    scry $SCROLL(Cycle 1 complete - Strategic assessment and action selection)
+    
+    bind update_result2 = autonomous_update upon
+    scry $SCROLL(Cycle 2 complete - Learning from actions and adapting)
+    
+    bind update_result3 = autonomous_update upon
+    scry $SCROLL(Cycle 3 complete - Coordinated multi-agent decisions)
+    
+    # Check wrangler status to see system in action
+    bind wrangler_status = get_wrangler_summary upon
+    scry $SCROLL(Wrangler status retrieved)
+    
+    # Get familiar statistics  
+    bind familiar_stats = get_familiar_stats upon
+    scry $SCROLL(Familiar statistics available for analysis)
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Enhanced AI Demo Complete! ===)
+    scry $SCROLL(Key Features Demonstrated:)
+    scry $SCROLL(- Utility-based decision making)
+    scry $SCROLL(- Spatial world modeling)
+    scry $SCROLL(- Objective goal evaluation)
+    scry $SCROLL(- Experience-based learning)
+    scry $SCROLL(- Intelligent resource allocation)
+
+# Run the demonstration
+main upon
