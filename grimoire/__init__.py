@@ -12,10 +12,15 @@ from .lexer import GrimoireLexer, TokenType, Token, tokenize_grimoire
 from .parser import GrimoireParser, parse_grimoire
 from .interpreter import GrimoireInterpreter
 from .keyword_variants import KeywordVariants, MagicSchool, ThematicCodeGenerator
+from importlib import import_module
+
+# Re-export messaging utilities
+messaging = import_module('grimoire.messaging')
 
 __all__ = [
     'GrimoireLexer', 'TokenType', 'Token', 'tokenize_grimoire',
     'GrimoireParser', 'parse_grimoire',
     'GrimoireInterpreter',
-    'KeywordVariants', 'MagicSchool', 'ThematicCodeGenerator'
+    'KeywordVariants', 'MagicSchool', 'ThematicCodeGenerator',
+    'messaging',
 ]
