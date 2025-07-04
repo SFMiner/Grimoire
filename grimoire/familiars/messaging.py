@@ -247,8 +247,8 @@ class MessageRouter:
         
         # True name lookup rule
         self.add_routing_rule(
-            condition=lambda msg: msg.recipient_true_name and msg.recipient_true_name in self.true_name_lookup,
-            action=lambda msg: self.true_name_lookup[msg.recipient_true_name],
+            condition=lambda msg: bool(msg.recipient_true_name and msg.recipient_true_name in self.true_name_lookup),
+            action=lambda msg: self.true_name_lookup[msg.recipient_true_name] if msg.recipient_true_name else "",
             description="Delivery via true name lookup",
             priority=90
         )

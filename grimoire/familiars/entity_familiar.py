@@ -2,14 +2,14 @@
 """
 Grimoire Entity Familiar
 
-This module implements the EntityFamiliar class, which specializes in
-managing entity properties, state persistence, and property-based interactions.
+A specialized familiar that manages entity properties, state, and interactions.
+This familiar excels at property management, change tracking, and state persistence.
 """
 
 import time
-from typing import Any, Dict, Optional, Set, List
-from dataclasses import dataclass
-import copy
+from typing import Any, Dict, List, Optional, Set, Callable
+from dataclasses import dataclass, field
+from collections import defaultdict
 
 try:
     from ..interpreter import GrimoireFamiliar
@@ -17,18 +17,19 @@ except ImportError:
     # Fallback for testing
     from grimoire.interpreter import GrimoireFamiliar
 
-from .types import FamiliarType, FamiliarCapability, get_familiar_spec, FamiliarCapabilityError
 from . import register_familiar_class
+from .types import FamiliarType, FamiliarCapability
+from .messaging import FamiliarMessage, MessageType, create_property_update_message, get_global_router
 
 
 @dataclass
 class PropertyUpdate:
-    """Represents a property update event."""
+    """Represents a property change event."""
     property_name: str
     old_value: Any
     new_value: Any
     timestamp: float
-    source: str
+    change_reason: str = "direct_update"
     
     def __post_init__(self):
         if self.timestamp == 0:
@@ -38,368 +39,458 @@ class PropertyUpdate:
 @register_familiar_class("Entity")
 class EntityFamiliar(GrimoireFamiliar):
     """
-    Familiar specialized for entity property management and state handling.
+    A familiar specialized in entity property management.
     
-    EntityFamiliars excel at:
-    - Managing entity properties with change tracking
-    - Notifying other familiars of property changes via sockets
-    - Persisting entity state
-    - Handling property queries and updates
-    - Maintaining property history
+    Capabilities:
+    - Property change tracking and notifications
+    - State persistence and snapshots
+    - Property watchers and event handling
+    - Socket-based property synchronization
     """
     
-    def __init__(self, name: str, entity_data: Optional[Dict[str, Any]] = None, 
-                 true_name: Optional[str] = None):
-        # Initialize base familiar
-        super().__init__(name, FamiliarType.ENTITY.name, {}, true_name)
-        
-        # Set familiar type and validate capabilities
+    def __init__(self, name: str):
+        # Create empty capabilities dict for base class
+        capabilities = {}
+        super().__init__(name, "Entity", capabilities)
         self.familiar_type = FamiliarType.ENTITY
-        # Note: capabilities should be a dict for the base class, but we track our type capabilities separately
+        # Override capabilities with our set (the base class expects a dict)
         self.capability_types = {
             FamiliarCapability.PROPERTY_MANAGEMENT,
-            FamiliarCapability.SOCKET_MANAGEMENT,
             FamiliarCapability.STATE_PERSISTENCE
         }
         
-        # Validate we have required capabilities
-        spec = get_familiar_spec(self.familiar_type)
-        missing = spec.required_capabilities - self.capability_types
-        if missing:
-            raise FamiliarCapabilityError(f"EntityFamiliar missing required capabilities: {missing}")
+        # Property management
+        self.properties: Dict[str, Any] = {}
+        self.property_history: Dict[str, List[PropertyUpdate]] = defaultdict(list)
+        self.property_watchers: Dict[str, List[Callable]] = defaultdict(list)
+        self.max_history_per_property = 100
         
-        # Initialize entity-specific attributes
-        self.properties: Dict[str, Any] = entity_data or {}
-        self.property_history: List[PropertyUpdate] = []
-        self.property_watchers: Dict[str, Set[str]] = {}  # property -> set of watcher names
-        self.max_history_size = 100
-        self.change_tracking_enabled = True
+        # State management
+        self.state_snapshots: List[Dict[str, Any]] = []
+        self.max_snapshots = 10
         
-        # Auto-create standard sockets based on specification
-        self._setup_default_sockets()
+        # Socket setup for property notifications
+        self.setup_property_sockets()
         
-        # Initialize property management
-        self._setup_property_management()
+        # Message handling
+        self.message_handlers: Dict[MessageType, Callable] = {
+            MessageType.PROPERTY_UPDATE: self._handle_property_update_message,
+            MessageType.QUERY: self._handle_query_message,
+            MessageType.NOTIFICATION: self._handle_notification_message
+        }
     
-    def _setup_default_sockets(self):
-        """Set up default sockets for entity familiar."""
-        spec = get_familiar_spec(self.familiar_type)
+    def setup_property_sockets(self):
+        """Set up sockets for property-related communication."""
+        # Input socket for property updates from other familiars
+        self.add_socket("property_input", direction="input")
         
-        for socket_name, direction in spec.default_sockets.items():
-            try:
-                self.add_socket(socket_name, direction=direction)
-            except Exception as e:
-                # Socket might already exist, that's OK
-                pass
-    
-    def has_socket(self, name: str) -> bool:
-        """Check if familiar has a socket with the given name."""
-        return name in self.sockets
-    
-    def _setup_property_management(self):
-        """Set up property management system."""
-        # Set up socket handlers for property operations
-        if self.has_socket("property_input"):
-            # Property input socket can receive property update commands
-            pass  # Socket handling would be implemented in socket system
+        # Output socket for property change notifications
+        self.add_socket("property_output", direction="output")
         
-        if self.has_socket("state_query"):
-            # State query socket can receive requests for entity state
-            pass  # Socket handling would be implemented in socket system
+        # State socket for persistence operations
+        self.add_socket("state_socket", direction="input")
+        
+        # Message input socket for general messaging
+        self.add_socket("message_input", direction="input")
+        
+        # Message output socket for sending messages
+        self.add_socket("message_output", direction="output")
     
-    def update_property(self, property_name: str, new_value: Any, 
-                       source: str = "direct") -> bool:
+    def set_property(self, property_name: str, value: Any, reason: str = "direct_update") -> bool:
         """
-        Update entity property and notify via sockets.
+        Set a property value with change tracking and notifications.
         
         Args:
-            property_name: Name of the property to update
-            new_value: New value for the property
-            source: Source of the update (for tracking)
+            property_name: Name of the property to set
+            value: New value for the property
+            reason: Reason for the change (for tracking)
             
         Returns:
-            True if property was updated, False otherwise
+            True if property was set successfully
         """
         old_value = self.properties.get(property_name)
         
-        # Update the property
-        self.properties[property_name] = new_value
+        # Check if value actually changed
+        if old_value == value:
+            return True
         
-        # Track the change if enabled
-        if self.change_tracking_enabled:
-            update = PropertyUpdate(
-                property_name=property_name,
-                old_value=old_value,
-                new_value=new_value,
-                timestamp=time.time(),
-                source=source
-            )
-            self.property_history.append(update)
-            
-            # Trim history if too long
-            if len(self.property_history) > self.max_history_size:
-                self.property_history = self.property_history[-self.max_history_size:]
+        # Update property
+        self.properties[property_name] = value
         
-        # Notify watchers via socket
-        self._notify_property_change(property_name, old_value, new_value)
-        
-        # Log activity
-        self.log_activity(
-            "self", 
-            f"Property '{property_name}' updated from {old_value} to {new_value}",
-            {
-                "property": property_name,
-                "old_value": old_value,
-                "new_value": new_value,
-                "source": source
-            }
+        # Create update record
+        update = PropertyUpdate(
+            property_name=property_name,
+            old_value=old_value,
+            new_value=value,
+            timestamp=time.time(),
+            change_reason=reason
         )
+        
+        # Add to history
+        self.property_history[property_name].append(update)
+        
+        # Trim history if too long
+        if len(self.property_history[property_name]) > self.max_history_per_property:
+            self.property_history[property_name] = self.property_history[property_name][-self.max_history_per_property//2:]
+        
+        # Notify watchers
+        self._notify_property_watchers(property_name, old_value, value)
+        
+        # Send socket notification
+        self._send_property_notification(property_name, old_value, value)
+        
+        # Send message notification to interested familiars
+        self._send_property_message(property_name, old_value, value)
         
         return True
     
     def get_property(self, property_name: str, default: Any = None) -> Any:
-        """
-        Get entity property value.
-        
-        Args:
-            property_name: Name of the property to get
-            default: Default value if property doesn't exist
-            
-        Returns:
-            Property value or default
-        """
-        value = self.properties.get(property_name, default)
-        
-        # Log property access
-        self.log_activity(
-            "self",
-            f"Property '{property_name}' accessed",
-            {"property": property_name, "value": value}
-        )
-        
-        return value
+        """Get a property value."""
+        return self.properties.get(property_name, default)
     
     def has_property(self, property_name: str) -> bool:
-        """Check if entity has a specific property."""
+        """Check if a property exists."""
         return property_name in self.properties
     
     def remove_property(self, property_name: str) -> bool:
-        """
-        Remove a property from the entity.
-        
-        Args:
-            property_name: Name of the property to remove
-            
-        Returns:
-            True if property was removed, False if it didn't exist
-        """
+        """Remove a property."""
         if property_name in self.properties:
-            old_value = self.properties.pop(property_name)
+            old_value = self.properties[property_name]
+            del self.properties[property_name]
             
-            # Track the removal
-            if self.change_tracking_enabled:
-                update = PropertyUpdate(
-                    property_name=property_name,
-                    old_value=old_value,
-                    new_value=None,
-                    timestamp=time.time(),
-                    source="removal"
-                )
-                self.property_history.append(update)
+            # Record the removal
+            update = PropertyUpdate(
+                property_name=property_name,
+                old_value=old_value,
+                new_value=None,
+                timestamp=time.time(),
+                change_reason="property_removed"
+            )
+            self.property_history[property_name].append(update)
             
             # Notify watchers
-            self._notify_property_change(property_name, old_value, None)
-            
-            self.log_activity(
-                "self",
-                f"Property '{property_name}' removed",
-                {"property": property_name, "old_value": old_value}
-            )
+            self._notify_property_watchers(property_name, old_value, None)
             
             return True
         return False
     
-    def get_all_properties(self) -> Dict[str, Any]:
-        """Get a copy of all entity properties."""
-        return copy.deepcopy(self.properties)
+    def get_property_history(self, property_name: str, limit: int = 10) -> List[PropertyUpdate]:
+        """Get the change history for a property."""
+        history = self.property_history.get(property_name, [])
+        return history[-limit:]
     
-    def set_properties(self, properties: Dict[str, Any], source: str = "batch") -> None:
+    def add_property_watcher(self, property_name: str, callback: Callable[[str, Any, Any], None]) -> None:
         """
-        Set multiple properties at once.
+        Add a callback function to watch property changes.
         
         Args:
-            properties: Dictionary of property names and values
-            source: Source of the updates
+            property_name: Property to watch (or "*" for all properties)
+            callback: Function called with (property_name, old_value, new_value)
         """
-        for prop_name, value in properties.items():
-            self.update_property(prop_name, value, source)
+        self.property_watchers[property_name].append(callback)
     
-    def get_property_history(self, property_name: Optional[str] = None) -> List[PropertyUpdate]:
-        """
-        Get property change history.
-        
-        Args:
-            property_name: If specified, only return history for this property
-            
-        Returns:
-            List of PropertyUpdate objects
-        """
-        if property_name:
-            return [update for update in self.property_history 
-                   if update.property_name == property_name]
-        return copy.deepcopy(self.property_history)
-    
-    def add_property_watcher(self, property_name: str, watcher_name: str) -> None:
-        """
-        Add a watcher for property changes.
-        
-        Args:
-            property_name: Property to watch
-            watcher_name: Name of the watcher (usually another familiar)
-        """
-        if property_name not in self.property_watchers:
-            self.property_watchers[property_name] = set()
-        self.property_watchers[property_name].add(watcher_name)
-    
-    def remove_property_watcher(self, property_name: str, watcher_name: str) -> None:
+    def remove_property_watcher(self, property_name: str, callback: Callable) -> bool:
         """Remove a property watcher."""
         if property_name in self.property_watchers:
-            self.property_watchers[property_name].discard(watcher_name)
-            if not self.property_watchers[property_name]:
-                del self.property_watchers[property_name]
+            try:
+                self.property_watchers[property_name].remove(callback)
+                return True
+            except ValueError:
+                pass
+        return False
     
-    def _notify_property_change(self, property_name: str, old_value: Any, new_value: Any) -> None:
-        """Notify watchers of property changes via sockets."""
-        if self.has_socket("property_output"):
+    def _notify_property_watchers(self, property_name: str, old_value: Any, new_value: Any) -> None:
+        """Notify all watchers of a property change."""
+        # Notify specific property watchers
+        for callback in self.property_watchers.get(property_name, []):
+            try:
+                callback(property_name, old_value, new_value)
+            except Exception as e:
+                print(f"Error in property watcher for {property_name}: {e}")
+        
+        # Notify global watchers (watching "*")
+        for callback in self.property_watchers.get("*", []):
+            try:
+                callback(property_name, old_value, new_value)
+            except Exception as e:
+                print(f"Error in global property watcher: {e}")
+    
+    def _send_property_notification(self, property_name: str, old_value: Any, new_value: Any) -> None:
+        """Send property change notification via socket."""
+        if "property_output" in self.sockets:
             notification = {
-                "type": "property_update",
-                "entity": self.name,
-                "property": property_name,
+                "type": "property_change",
+                "familiar_name": self.name,
+                "property_name": property_name,
                 "old_value": old_value,
                 "new_value": new_value,
                 "timestamp": time.time()
             }
-            
-            try:
-                self.send_to_socket("property_output", notification)
-                self.log_activity(
-                    "inter_familiar",
-                    f"Property change notification sent for '{property_name}'",
-                    notification
-                )
-            except Exception as e:
-                self.log_activity(
-                    "self",
-                    f"Failed to send property notification: {e}",
-                    {"error": str(e), "property": property_name}
-                )
+            self.send_to_socket("property_output", notification)
     
-    def get_state_snapshot(self) -> Dict[str, Any]:
-        """Get a complete state snapshot for persistence."""
+    def _send_property_message(self, property_name: str, old_value: Any, new_value: Any) -> None:
+        """Send property change message to interested familiars."""
+        router = get_global_router()
+        
+        # Create property update message
+        message = create_property_update_message(
+            sender_name=self.name,
+            sender_true_name=self.true_name,
+            recipient_name="*",  # Broadcast to all interested familiars
+            property_name=property_name,
+            old_value=old_value,
+            new_value=new_value
+        )
+        
+        # Route the message
+        router.route_message(message)
+    
+    def create_snapshot(self, snapshot_name: Optional[str] = None) -> str:
+        """
+        Create a snapshot of the current state.
+        
+        Args:
+            snapshot_name: Optional name for the snapshot
+            
+        Returns:
+            Snapshot ID
+        """
+        snapshot_id = snapshot_name or f"snapshot_{len(self.state_snapshots)}"
+        
+        snapshot = {
+            "id": snapshot_id,
+            "timestamp": time.time(),
+            "properties": self.properties.copy(),
+            "familiar_state": self.state
+        }
+        
+        self.state_snapshots.append(snapshot)
+        
+        # Trim snapshots if too many
+        if len(self.state_snapshots) > self.max_snapshots:
+            self.state_snapshots = self.state_snapshots[-self.max_snapshots//2:]
+        
+        # Send snapshot notification
+        if "state_socket" in self.sockets:
+            self.send_to_socket("state_socket", {
+                "type": "snapshot_created",
+                "snapshot_id": snapshot_id,
+                "timestamp": snapshot["timestamp"]
+            })
+        
+        return snapshot_id
+    
+    def restore_snapshot(self, snapshot_id: str) -> bool:
+        """
+        Restore state from a snapshot.
+        
+        Args:
+            snapshot_id: ID of the snapshot to restore
+            
+        Returns:
+            True if snapshot was restored successfully
+        """
+        for snapshot in self.state_snapshots:
+            if snapshot["id"] == snapshot_id:
+                # Restore properties
+                old_properties = self.properties.copy()
+                self.properties = snapshot["properties"].copy()
+                
+                # Restore familiar state
+                self.state = snapshot["familiar_state"]
+                
+                # Notify about all property changes
+                for prop_name, new_value in self.properties.items():
+                    old_value = old_properties.get(prop_name)
+                    if old_value != new_value:
+                        self._notify_property_watchers(prop_name, old_value, new_value)
+                
+                # Notify about removed properties
+                for prop_name, old_value in old_properties.items():
+                    if prop_name not in self.properties:
+                        self._notify_property_watchers(prop_name, old_value, None)
+                
+                # Send restoration notification
+                if "state_socket" in self.sockets:
+                    self.send_to_socket("state_socket", {
+                        "type": "snapshot_restored",
+                        "snapshot_id": snapshot_id,
+                        "timestamp": time.time()
+                    })
+                
+                return True
+        
+        return False
+    
+    def get_snapshots(self) -> List[Dict[str, Any]]:
+        """Get list of available snapshots."""
+        return [
+            {
+                "id": snapshot["id"],
+                "timestamp": snapshot["timestamp"],
+                "property_count": len(snapshot["properties"])
+            }
+            for snapshot in self.state_snapshots
+        ]
+    
+    def receive_message(self, message: FamiliarMessage) -> None:
+        """Handle incoming messages."""
+        if message.message_type in self.message_handlers:
+            try:
+                self.message_handlers[message.message_type](message)
+            except Exception as e:
+                print(f"Error handling message {message.message_id}: {e}")
+    
+    def _handle_property_update_message(self, message: FamiliarMessage) -> None:
+        """Handle property update messages from other familiars."""
+        payload = message.payload
+        
+        if "property_name" in payload:
+            property_name = payload["property_name"]
+            new_value = payload.get("new_value")
+            
+            # Update our local copy if this is a synchronized property
+            if property_name.startswith("sync_"):
+                self.set_property(property_name, new_value, "message_sync")
+    
+    def _handle_query_message(self, message: FamiliarMessage) -> None:
+        """Handle query messages about properties."""
+        payload = message.payload
+        query = payload.get("query", "")
+        
+        response_payload = {}
+        
+        if query == "get_all_properties":
+            response_payload["properties"] = self.properties.copy()
+        elif query.startswith("get_property:"):
+            prop_name = query.split(":", 1)[1]
+            response_payload["property_value"] = self.get_property(prop_name)
+        elif query == "get_property_count":
+            response_payload["property_count"] = len(self.properties)
+        elif query == "get_snapshots":
+            response_payload["snapshots"] = self.get_snapshots()
+        else:
+            response_payload["error"] = f"Unknown query: {query}"
+        
+        # Send response
+        if message.requires_response:
+            response = message.create_response(
+                sender_name=self.name,
+                sender_true_name=self.true_name,
+                payload=response_payload
+            )
+            
+            router = get_global_router()
+            router.route_message(response)
+    
+    def _handle_notification_message(self, message: FamiliarMessage) -> None:
+        """Handle general notification messages."""
+        payload = message.payload
+        
+        # Log the notification
+        print(f"EntityFamiliar {self.name} received notification: {payload}")
+    
+    def inquire(self, property_name: str) -> Any:
+        """
+        Enhanced inquire method with property access support.
+        
+        Supports:
+        - Basic familiar properties (name, true_name, state, familiar_type)
+        - Entity properties via property management system
+        - Property history and snapshots
+        """
+        # Handle basic familiar properties first
+        if property_name == "name":
+            return self.name
+        elif property_name == "true_name":
+            return self.true_name
+        elif property_name == "state":
+            return self.state
+        elif property_name == "familiar_type":
+            return self.familiar_type.name if hasattr(self.familiar_type, 'name') else str(self.familiar_type)
+        elif property_name == "type":
+            return self.familiar_type
+        elif property_name == "capabilities":
+            return list(self.capability_types) if hasattr(self, 'capability_types') else []
+        elif property_name == "sockets":
+            return list(self.sockets.keys())
+        
+        # Check entity properties
+        if property_name in self.properties:
+            return self.properties[property_name]
+        
+        # Special property queries
+        if property_name == "property_count":
+            return len(self.properties)
+        elif property_name == "snapshot_count":
+            return len(self.state_snapshots)
+        elif property_name.startswith("property_history:"):
+            prop_name = property_name.split(":", 1)[1]
+            return self.get_property_history(prop_name)
+        elif property_name == "all_properties":
+            return self.properties.copy()
+        elif property_name == "all_snapshots":
+            return self.get_snapshots()
+        
+        return None
+    
+    def command(self, command: str, arguments: List[Any]) -> Any:
+        """Handle commands for the entity familiar."""
+        if command == "set_property":
+            if len(arguments) >= 2:
+                property_name = str(arguments[0])
+                value = arguments[1]
+                reason = str(arguments[2]) if len(arguments) > 2 else "command"
+                return self.set_property(property_name, value, reason)
+            else:
+                raise RuntimeError("set_property requires at least 2 arguments (name, value)")
+        
+        elif command == "get_property":
+            if len(arguments) >= 1:
+                property_name = str(arguments[0])
+                default = arguments[1] if len(arguments) > 1 else None
+                return self.get_property(property_name, default)
+            else:
+                raise RuntimeError("get_property requires 1 argument (name)")
+        
+        elif command == "create_snapshot":
+            snapshot_name = str(arguments[0]) if len(arguments) > 0 else None
+            return self.create_snapshot(snapshot_name)
+        
+        elif command == "restore_snapshot":
+            if len(arguments) >= 1:
+                snapshot_id = str(arguments[0])
+                return self.restore_snapshot(snapshot_id)
+            else:
+                raise RuntimeError("restore_snapshot requires 1 argument (snapshot_id)")
+        
+        elif command == "get_snapshots":
+            return self.get_snapshots()
+        
+        elif command == "get_status":
+            return self.get_status()
+        
+        else:
+            # Fall back to base class command handling
+            return super().command(command, arguments)
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get comprehensive status of the entity familiar."""
         return {
             "name": self.name,
+            "true_name": self.true_name,
             "familiar_type": self.familiar_type.name,
-            "properties": copy.deepcopy(self.properties),
-            "property_history": [
-                {
-                    "property_name": update.property_name,
-                    "old_value": update.old_value,
-                    "new_value": update.new_value,
-                    "timestamp": update.timestamp,
-                    "source": update.source
-                }
-                for update in self.property_history
-            ],
+            "state": self.state,
             "capabilities": [cap.name for cap in self.capability_types],
-            "creation_time": getattr(self, 'creation_time', time.time())
+            "property_count": len(self.properties),
+            "snapshot_count": len(self.state_snapshots),
+            "total_property_changes": sum(len(history) for history in self.property_history.values()),
+            "active_watchers": sum(len(watchers) for watchers in self.property_watchers.values()),
+            "socket_count": len(self.sockets)
         }
     
-    def restore_from_snapshot(self, snapshot: Dict[str, Any]) -> bool:
-        """Restore state from a snapshot."""
-        try:
-            self.properties = snapshot.get("properties", {})
-            
-            # Restore property history
-            history_data = snapshot.get("property_history", [])
-            self.property_history = [
-                PropertyUpdate(
-                    property_name=h["property_name"],
-                    old_value=h["old_value"],
-                    new_value=h["new_value"],
-                    timestamp=h["timestamp"],
-                    source=h["source"]
-                )
-                for h in history_data
-            ]
-            
-            self.log_activity(
-                "self",
-                "State restored from snapshot",
-                {"properties_count": len(self.properties), "history_count": len(self.property_history)}
-            )
-            
-            return True
-        except Exception as e:
-            self.log_activity(
-                "self",
-                f"Failed to restore from snapshot: {e}",
-                {"error": str(e)}
-            )
-            return False
-    
-    def clear_property_history(self) -> None:
-        """Clear the property change history."""
-        old_count = len(self.property_history)
-        self.property_history.clear()
-        self.log_activity(
-            "self",
-            f"Property history cleared ({old_count} entries removed)",
-            {"cleared_count": old_count}
-        )
-    
-    def set_change_tracking(self, enabled: bool) -> None:
-        """Enable or disable property change tracking."""
-        self.change_tracking_enabled = enabled
-        self.log_activity(
-            "self",
-            f"Change tracking {'enabled' if enabled else 'disabled'}",
-            {"tracking_enabled": enabled}
-        )
-    
-    def get_current_time(self) -> float:
-        """Get current timestamp (can be overridden for testing)."""
-        return time.time()
-    
-    # Override inquire to handle entity-specific queries
-    def inquire(self, query: str) -> Any:
-        """Handle entity-specific inquiries."""
-        # Handle basic familiar properties
-        if query == "name":
-            return self.name
-        elif query == "true_name":
-            return self.true_name
-        elif query == "state":
-            return self.state
-        elif query == "familiar_type":
-            return self.familiar_type.name if hasattr(self.familiar_type, 'name') else str(self.familiar_type)
-        elif query.startswith("property."):
-            property_name = query[9:]  # Remove "property." prefix
-            return self.get_property(property_name)
-        elif query == "all_properties":
-            return self.get_all_properties()
-        elif query == "property_count":
-            return len(self.properties)
-        elif query == "change_history":
-            return len(self.property_history)
-        elif query.startswith("history."):
-            property_name = query[8:]  # Remove "history." prefix
-            return self.get_property_history(property_name)
-        else:
-            # Fall back to base familiar inquire
-            return super().inquire(query)
-    
     def __str__(self) -> str:
-        return f"<EntityFamiliar {self.name} ({len(self.properties)} properties)>"
+        return f"EntityFamiliar(name={self.name}, properties={len(self.properties)}, snapshots={len(self.state_snapshots)})"
     
     def __repr__(self) -> str:
-        return f"EntityFamiliar(name='{self.name}', properties={list(self.properties.keys())})"
+        return f"EntityFamiliar(name='{self.name}', type={self.familiar_type.name}, properties={len(self.properties)})"
