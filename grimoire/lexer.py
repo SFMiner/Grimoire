@@ -117,7 +117,7 @@ class GrimoireLexer:
         'artifact': TokenType.ARTIFACT,
         'familiar': TokenType.FAMILIAR,
         'essence': TokenType.ESSENCE,
-        'invoke': TokenType.INVOKE,
+
         'scry': TokenType.SCRY,
         'transmute': TokenType.TRANSMUTE,
         'banish': TokenType.BANISH,

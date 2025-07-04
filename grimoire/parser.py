@@ -91,6 +91,13 @@ class PortalExpression(Expression):
     target: Expression
 
 
+@dataclass
+class PropertyAssignmentExpression(Expression):
+    """Represents property assignment (object.property = value)."""
+    target: Expression  # Should be a PropertyAccessExpression
+    value: Expression
+
+
 # =============================================================================
 # Statement Nodes
 # =============================================================================
@@ -378,8 +385,8 @@ class GrimoireParser:
         name = self.consume(TokenType.IDENTIFIER, "Expected artifact name").lexeme
         
         superclass = None
-        if self.match(TokenType.COLON):
-            superclass = self.consume(TokenType.IDENTIFIER, "Expected superclass name").lexeme
+        # Check if there's inheritance (artifact Name extends SuperClass:)
+        # For now, we'll just handle artifact Name: syntax
         
         self.consume(TokenType.COLON, "Expected ':' before artifact body")
         
@@ -396,8 +403,10 @@ class GrimoireParser:
                 continue
             
             if self.check(TokenType.RITUAL):
-                self.advance()
-                methods.append(self.ritual_declaration())
+                # Don't advance here - let declaration() handle it
+                stmt = self.declaration()
+                if isinstance(stmt, RitualStatement):
+                    methods.append(stmt)
             elif self.check(TokenType.ESSENCE):
                 self.advance()
                 essences.append(self.essence_declaration())
@@ -411,8 +420,7 @@ class GrimoireParser:
         name = self.consume(TokenType.IDENTIFIER, "Expected familiar name").lexeme
         
         superclass = None
-        if self.match(TokenType.COLON):
-            superclass = self.consume(TokenType.IDENTIFIER, "Expected superclass name").lexeme
+        # For now, we'll just handle familiar Name: syntax
         
         self.consume(TokenType.COLON, "Expected ':' before familiar body")
         
@@ -429,8 +437,10 @@ class GrimoireParser:
                 continue
             
             if self.check(TokenType.RITUAL):
-                self.advance()
-                methods.append(self.ritual_declaration())
+                # Don't advance here - let declaration() handle it
+                stmt = self.declaration()
+                if isinstance(stmt, RitualStatement):
+                    methods.append(stmt)
             elif self.check(TokenType.ESSENCE):
                 self.advance()
                 essences.append(self.essence_declaration())
@@ -497,15 +507,30 @@ class GrimoireParser:
         
         return self.expression_statement()
     
-    def bind_statement(self) -> BindStatement:
-        """Parse variable binding statements."""
-        name = self.consume(TokenType.IDENTIFIER, "Expected variable name").lexeme
-        
-        initializer = None
-        if self.match(TokenType.IS_NOW):
-            initializer = self.expression()
-        
-        return BindStatement(name, initializer)
+    def bind_statement(self) -> Statement:
+        """Parse variable binding statements or property assignments."""
+        # Check if this is a property assignment (bind self.property = value)
+        if (self.check(TokenType.IDENTIFIER) and 
+            self.current + 1 < len(self.tokens) and 
+            self.tokens[self.current + 1].type == TokenType.DOT):
+            
+            # Parse as property assignment
+            target = self.expression()  # This will parse self.property
+            self.consume(TokenType.IS_NOW, "Expected 'is now' after property")
+            value = self.expression()
+            
+            # Create a property assignment expression statement
+            assignment = PropertyAssignmentExpression(target, value)
+            return ExpressionStatement(assignment)
+        else:
+            # Parse as regular variable binding
+            name = self.consume(TokenType.IDENTIFIER, "Expected variable name").lexeme
+            
+            initializer = None
+            if self.match(TokenType.IS_NOW):
+                initializer = self.expression()
+            
+            return BindStatement(name, initializer)
     
     def scry_statement(self) -> ScryStatement:
         """Parse scry (print) statements."""
@@ -521,16 +546,61 @@ class GrimoireParser:
         while self.match(TokenType.NEWLINE):
             pass
         
-        then_branch = self.statement()
+        # Parse then-branch - could be single statement or block
+        then_branch = self.parse_if_branch()
+        
+        # Skip newlines and look for else clause
+        while self.match(TokenType.NEWLINE):
+            pass
         
         else_branch = None
         if self.match(TokenType.ELSE_CURSED):
             self.consume(TokenType.COLON, "Expected ':' after else")
             while self.match(TokenType.NEWLINE):
                 pass
-            else_branch = self.statement()
+            else_branch = self.parse_if_branch()
         
         return IfStatement(condition, then_branch, else_branch)
+    
+    def parse_if_branch(self) -> Statement:
+        """Parse a branch of an if statement (could be single statement or block)."""
+        statements = []
+        
+        # Collect all statements at the same indentation level
+        while (not self.is_at_end() and 
+               not self.check(TokenType.ELSE_CURSED) and
+               not self.check_next_declaration()):
+            
+            if self.match(TokenType.NEWLINE):
+                continue
+                
+            # Check if we're still in the indented block
+            # Simple heuristic: if we see these tokens, we've left the block
+            if (self.check(TokenType.RITUAL) or self.check(TokenType.ARTIFACT) or 
+                self.check(TokenType.FAMILIAR) or self.check(TokenType.PLANE) or
+                self.check(TokenType.EFFECT)):
+                break
+            
+            stmt = self.statement()
+            if stmt:
+                statements.append(stmt)
+                
+            # If we parsed a non-expression statement, we might be done with this block
+            if not isinstance(stmt, ExpressionStatement):
+                # Check if the next line is at the same or lesser indentation
+                # For now, we'll use a simple approach: stop if we see certain tokens
+                if (self.check(TokenType.ELSE_CURSED) or 
+                    self.check(TokenType.IDENTIFIER) or
+                    self.check_next_declaration()):
+                    break
+        
+        if len(statements) == 1:
+            return statements[0]
+        elif len(statements) > 1:
+            return BlockStatement(statements)
+        else:
+            # Empty block - shouldn't happen but handle gracefully
+            return BlockStatement([])
     
     def while_statement(self) -> WhileStatement:
         """Parse while statements."""
@@ -585,19 +655,30 @@ class GrimoireParser:
         """Parse block statements."""
         statements = []
         
+        # Check if this is a braced block or an indented block
+        expects_brace = self.previous().type == TokenType.LEFT_BRACE
+        
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
             if self.match(TokenType.NEWLINE):
                 continue
+            
+            # For indented blocks, stop when we reach a non-indented line
+            if not expects_brace:
+                # Simple heuristic: stop if we see a top-level declaration or EOF
+                if (self.check(TokenType.RITUAL) or self.check(TokenType.ARTIFACT) or 
+                    self.check(TokenType.FAMILIAR) or self.check(TokenType.PLANE) or
+                    self.check(TokenType.EFFECT)):
+                    break
+                # Also stop if we encounter an identifier that might be a top-level call
+                if (self.check(TokenType.IDENTIFIER) and 
+                    self.tokens[self.current + 1].type == TokenType.UPON):
+                    break
             
             stmt = self.declaration()
             if stmt:
                 statements.append(stmt)
         
-        if not self.check(TokenType.RIGHT_BRACE):
-            # If we started with {, we expect }
-            # If not, this is an indented block, so we're done
-            pass
-        else:
+        if expects_brace:
             self.consume(TokenType.RIGHT_BRACE, "Expected '}' after block")
         
         return BlockStatement(statements)
@@ -755,9 +836,21 @@ class GrimoireParser:
             
             arguments = []
             if self.match(TokenType.UPON):
-                arguments.append(self.expression())
-                while self.match(TokenType.COMMA):
-                    arguments.append(self.expression())
+                # Only parse arguments if there's actually an expression to parse
+                if (not self.check(TokenType.NEWLINE) and 
+                    not self.check(TokenType.EOF) and
+                    not self.check(TokenType.RIGHT_BRACE) and
+                    not self.check(TokenType.RIGHT_PAREN)):
+                    # Check if we have an actual expression to parse
+                    if (self.check(TokenType.IDENTIFIER) or 
+                        self.check(TokenType.SCROLL) or 
+                        self.check(TokenType.SIGIL) or 
+                        self.check(TokenType.AETHER) or
+                        self.check(TokenType.LEFT_PAREN) or
+                        self.check(TokenType.CONJURE)):
+                        arguments.append(self.expression())
+                        while self.match(TokenType.COMMA):
+                            arguments.append(self.expression())
             
             return ConjureExpression(artifact_type, arguments)
         

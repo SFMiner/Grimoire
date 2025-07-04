@@ -15,6 +15,7 @@ from .parser import (
     ASTNode, Expression, Statement, Program,
     LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression,
     CallExpression, PropertyAccessExpression, ConjureExpression, PortalExpression,
+    PropertyAssignmentExpression,
     ExpressionStatement, BindStatement, ScryStatement, IfStatement, WhileStatement,
     ForStatement, BlockStatement, ReturnStatement, BreakStatement, ContinueStatement,
     RitualStatement, ArtifactStatement, FamiliarStatement, PlaneStatement,
@@ -430,6 +431,20 @@ class GrimoireInterpreter:
         elif isinstance(expression, PortalExpression):
             # For now, portal expressions are not implemented
             raise RuntimeError("Portal expressions not yet implemented")
+        
+        elif isinstance(expression, PropertyAssignmentExpression):
+            # Handle property assignment (self.property = value)
+            if isinstance(expression.target, PropertyAccessExpression):
+                obj = self.evaluate(expression.target.object)
+                value = self.evaluate(expression.value)
+                
+                if isinstance(obj, GrimoireInstance):
+                    obj.set(expression.target.property, value)
+                    return value
+                else:
+                    raise RuntimeError("Only instances have properties")
+            else:
+                raise RuntimeError("Invalid assignment target")
         
         else:
             raise RuntimeError(f"Unknown expression type: {type(expression)}")
