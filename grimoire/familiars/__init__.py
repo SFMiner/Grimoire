@@ -19,6 +19,9 @@ def _get_base_familiar_cls():
 # Registry -------------------------------------------------------------------
 FAMILIAR_CLASS_REGISTRY: Dict[str, Type] = {}
 
+# Mapping helper to attempt auto-import based on naming convention
+_DEF_MODULE_TEMPLATE = "grimoire.familiars.{name}_familiar"
+
 
 def register_familiar_class(name: str):
     """Decorator to register a new familiar subclass under a type *name*."""
@@ -31,7 +34,23 @@ def register_familiar_class(name: str):
 
 
 def get_familiar_class(name: str):
-    """Return the registered subclass for *name* or the base class."""
+    """Return the registered subclass for *name* or the base class.
+
+    If the class isn't registered yet we will try to *lazily* import a module
+    following the convention ``grimoire.familiars.{name_lower}_familiar`` which
+    should register itself as a side-effect of evaluation.
+    """
+    cls = FAMILIAR_CLASS_REGISTRY.get(name)
+    if cls is not None:
+        return cls
+
+    # Attempt lazy import
+    module_name = _DEF_MODULE_TEMPLATE.format(name=name.lower())
+    try:
+        importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        pass  # Silently ignore – caller will get base class
+
     return FAMILIAR_CLASS_REGISTRY.get(name, _get_base_familiar_cls())
 
 

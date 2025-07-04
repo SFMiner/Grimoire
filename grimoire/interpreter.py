@@ -1745,17 +1745,24 @@ class GrimoireInterpreter:
                 raise RuntimeError("summon expects at least 1 argument (familiar type)")
             familiar_type = arguments[0]
             familiar_name = arguments[1] if len(arguments) > 1 else f"{familiar_type.lower()}_familiar"
-            
-            if familiar_type not in FAMILIAR_TYPES:
-                raise RuntimeError(f"Unknown familiar type: {familiar_type}")
-            
-            capabilities = FAMILIAR_TYPES[familiar_type]()
-            familiar = GrimoireFamiliar(familiar_name, familiar_type, capabilities)
+
+            # Try specialised familiar class registry first
+            try:
+                from grimoire.familiars import get_familiar_class  # Local import
+                FamiliarCls = get_familiar_class(familiar_type)
+            except Exception:  # pragma: no cover
+                FamiliarCls = None
+
+            if FamiliarCls and FamiliarCls.__name__ != "GrimoireFamiliar":
+                familiar = FamiliarCls(familiar_name)
+            else:
+                if familiar_type not in FAMILIAR_TYPES:
+                    raise RuntimeError(f"Unknown familiar type: {familiar_type}")
+                capabilities = FAMILIAR_TYPES[familiar_type]()
+                familiar = GrimoireFamiliar(familiar_name, familiar_type, capabilities)
+
             self.familiars[familiar_name] = familiar
-            
-            # Automatically register with wrangler
             self.familiar_wrangler.register_familiar(familiar)
-            
             return familiar
         
         # Built-in function for creating archons
@@ -1968,6 +1975,58 @@ class GrimoireInterpreter:
             output_socket.disconnect_from(input_socket)
             return f"Disconnected {output_socket.owner.name}.{output_socket.name} -X- {input_socket.owner.name}.{input_socket.name}"
         
+        # ------------------------------------------------------------------
+        # Inter-familiar communication helpers (phase 1)
+        # ------------------------------------------------------------------
+        def link_familiars_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("link_familiars expects at least 2 arguments (fam1, fam2)")
+            fam1, fam2 = arguments[0], arguments[1]
+            connection_type = arguments[2] if len(arguments) > 2 else "direct"
+            if not isinstance(fam1, GrimoireFamiliar) or not isinstance(fam2, GrimoireFamiliar):
+                raise RuntimeError("Both arguments must be familiars")
+            # For now: create generic message sockets
+            from grimoire.sockets import SocketDirectionError
+            try:
+                out_sock = fam1.get_socket("message_output")
+            except RuntimeError:
+                out_sock = fam1.add_socket("message_output", direction="output")
+            try:
+                in_sock = fam2.get_socket("message_input")
+            except RuntimeError:
+                in_sock = fam2.add_socket("message_input", direction="input")
+            try:
+                out_sock.connect_to(in_sock)
+            except SocketDirectionError:
+                pass
+            return f"{fam1.name} linked to {fam2.name} ({connection_type})"
+
+        def send_familiar_message_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("send_familiar_message expects (familiar, message, [target])")
+            fam = arguments[0]
+            message = arguments[1]
+            if not isinstance(fam, GrimoireFamiliar):
+                raise RuntimeError("First argument must be a familiar")
+            fam.send_to_socket("message_output", message)
+            return "message sent"
+
+        def familiar_broadcast_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("familiar_broadcast expects (familiar, message)")
+            fam = arguments[0]
+            msg = arguments[1]
+            if not isinstance(fam, GrimoireFamiliar):
+                raise RuntimeError("First argument must be a familiar")
+            # Broadcast to all connected sinks
+            sock = None
+            try:
+                sock = fam.get_socket("message_output")
+            except RuntimeError:
+                sock = fam.add_socket("message_output", direction="output")
+            sock.send(msg)
+            return "broadcast complete"
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -1998,6 +2057,9 @@ class GrimoireInterpreter:
         self.globals.define("create_socket", create_socket_builtin)
         self.globals.define("connect_socket", connect_socket_builtin)
         self.globals.define("disconnect_socket", disconnect_socket_builtin)
+        self.globals.define("link_familiars", link_familiars_builtin)
+        self.globals.define("send_familiar_message", send_familiar_message_builtin)
+        self.globals.define("familiar_broadcast", familiar_broadcast_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
