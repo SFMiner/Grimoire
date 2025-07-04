@@ -31,19 +31,23 @@ python -m grimoire --interactive
 
 ```grimoire
 # Hello World
-scry $SCROLL("Hello, magical world!")
+scry $SCROLL(Hello, magical world!)
 
-# Variables and functions
-bind name = "Wizard"
+# Variables and functions  
+bind name = $SCROLL(Wizard)
 ritual greet(target):
-    scry $SCROLL("Greetings, " + target + "!")
+    scry $SCROLL(Greetings, ) added to target added to $SCROLL(!)
 
 greet(name)
 
-# Create your first familiar
-create_familiar_with_pact("helper", "assist_player")
-enable_reporting("helper", ["command"])
-get_wrangler_report()
+# Create your first familiar (need spirit first)
+bind helper_spirit = create_spirit upon $SCROLL(Assistant), $SCROLL(Helper)
+bind helper_familiar = create_familiar_with_pact upon helper_spirit, $SCROLL(Helper), [$SCROLL(assist_player)]
+
+# Monitor activity
+enable_reporting upon helper_familiar, $SCROLL(command)
+bind report = get_wrangler_report upon
+scry report
 ```
 
 ## 🎭 Language Overview
