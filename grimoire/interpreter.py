@@ -820,7 +820,7 @@ class GrimoireSpirit(GoalSeeker):
         if self.pact_registry_ref:
             self.pact_registry_ref.register_pact(pact)
         self.pacts[true_name] = pact
-        familiar.pact = pact
+        familiar.add_pact(pact)
         
         self.familiars.append(familiar)
         return familiar
@@ -835,7 +835,7 @@ class GrimoireSpirit(GoalSeeker):
             # Find and update the familiar
             for familiar in self.familiars:
                 if familiar.true_name == familiar_true_name:
-                    familiar.pact = None
+                    familiar.remove_pact(self.name)
                     break
             
             return f"Pact revoked with {familiar_true_name}"
@@ -1012,10 +1012,19 @@ class GrimoireSpirit(GoalSeeker):
 class GrimoireFamiliar:
     """Represents a runtime familiar - a semi-autonomous agent."""
     
-    def __init__(self, name: str, familiar_type: str, capabilities: Dict[str, FamiliarCapability]):
+    def __init__(self, name: str, familiar_type: str, capabilities: Dict[str, FamiliarCapability], true_name: Optional[str] = None):
         self.name = name
         self.familiar_type = familiar_type
         self.capabilities = capabilities
+        
+        # True name - immutable identifier for pact security
+        if true_name:
+            self.true_name = true_name
+        else:
+            # Generate true name automatically if not provided
+            import hashlib
+            self.true_name = hashlib.sha256(f"{name}_{familiar_type}_{__import__('time').time()}".encode()).hexdigest()[:16]
+        
         self.charge = None  # The entity this familiar manages
         self.spirit_ref: Optional[GrimoireSpirit] = None  # Reference to managing spirit
         self.wrangler_ref: Optional[FamiliarWrangler] = None  # Reference to wrangler
@@ -1023,6 +1032,9 @@ class GrimoireFamiliar:
         self.properties = {}
         self.reactive_behaviors = []
         self.interaction_protocols = []
+        
+        # Pact system - familiars can have multiple pacts with different spirits
+        self.pacts: Dict[str, Pact] = {}  # spirit_name -> pact
         
         # Reporting system
         self.is_reporting = False
@@ -1270,6 +1282,74 @@ class GrimoireFamiliar:
             "reporting_type": self.report_type,
             "is_reporting": self.is_reporting
         }
+    
+    # =============================================================================
+    # Pact System Methods
+    # =============================================================================
+    
+    def add_pact(self, pact: Pact) -> str:
+        """Add a pact with a spirit (only during initialization)."""
+        if pact.spirit_name in self.pacts:
+            return f"Pact with {pact.spirit_name} already exists"
+        
+        self.pacts[pact.spirit_name] = pact
+        self.log_activity("pact", f"Pact established with spirit {pact.spirit_name}", 
+                         {"domain": pact.domain, "terms": pact.pact_terms})
+        return f"Pact established with spirit {pact.spirit_name}"
+    
+    def remove_pact(self, spirit_name: str) -> str:
+        """Remove a pact with a spirit."""
+        if spirit_name in self.pacts:
+            del self.pacts[spirit_name]
+            self.log_activity("pact", f"Pact removed with spirit {spirit_name}", {})
+            return f"Pact removed with spirit {spirit_name}"
+        return f"No pact found with spirit {spirit_name}"
+    
+    def has_pact_with(self, spirit_name: str) -> bool:
+        """Check if this familiar has a pact with a specific spirit."""
+        return spirit_name in self.pacts
+    
+    def get_pact_terms(self, spirit_name: str) -> List[str]:
+        """Get the terms of a pact with a specific spirit."""
+        if spirit_name in self.pacts:
+            return self.pacts[spirit_name].pact_terms
+        return []
+    
+    def execute_pact_action(self, action: str, args: tuple) -> Any:
+        """Execute a custom pact action."""
+        self.log_activity("pact_action", f"Executing pact action: {action}", {"args": args})
+        
+        # Custom actions can be implemented here based on familiar type
+        if action == "transform_state":
+            old_state = self.state
+            self.state = args[0] if args else "transformed"
+            return f"State transformed from {old_state} to {self.state}"
+        elif action == "modify_behavior":
+            behavior_name = args[0] if args else "default"
+            if behavior_name not in self.reactive_behaviors:
+                self.reactive_behaviors.append(behavior_name)
+            return f"Behavior {behavior_name} added"
+        elif action == "grant_capability":
+            capability_name = args[0] if args else "generic"
+            # This would add new capabilities to the familiar
+            return f"Capability {capability_name} granted"
+        else:
+            return f"Unknown pact action: {action}"
+    
+    def get_pact_summary(self) -> Dict[str, Any]:
+        """Get a summary of all pacts for this familiar."""
+        return {
+            "true_name": self.true_name,
+            "total_pacts": len(self.pacts),
+            "spirit_pacts": {
+                spirit_name: {
+                    "domain": pact.domain,
+                    "terms": pact.pact_terms,
+                    "creation_time": pact.creation_timestamp
+                }
+                for spirit_name, pact in self.pacts.items()
+            }
+        }
 
 
 # Built-in familiar types
@@ -1366,6 +1446,7 @@ class GrimoireInterpreter:
         self.spirits = {}   # Active spirits
         self.interaction_matrix = InteractionMatrix()  # Agent relationships
         self.familiar_wrangler = FamiliarWrangler()  # Familiar monitoring system
+        self.pact_registry = PactRegistry()  # Global pact registry
         
         # Define built-in functions
         self._define_builtins()
@@ -1415,8 +1496,10 @@ class GrimoireInterpreter:
                 raise RuntimeError("create_spirit expects 2 arguments (name, spirit_type)")
             spirit_name = arguments[0]
             spirit_type = arguments[1]
+            domain = arguments[2] if len(arguments) > 2 else "general"
             
-            spirit = GrimoireSpirit(spirit_name, spirit_type)
+            spirit = GrimoireSpirit(spirit_name, spirit_type, domain)
+            spirit.pact_registry_ref = self.pact_registry
             self.spirits[spirit_name] = spirit
             return spirit
         
@@ -1484,6 +1567,87 @@ class GrimoireInterpreter:
         def get_familiar_stats_builtin(interpreter, arguments):
             return self.familiar_wrangler.get_familiar_stats()
         
+        # Pact system functions
+        def create_familiar_with_pact_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError("create_familiar_with_pact expects at least 3 arguments (spirit, familiar_type, pact_terms)")
+            spirit = arguments[0]
+            familiar_type = arguments[1]
+            pact_terms = arguments[2] if isinstance(arguments[2], list) else [arguments[2]]
+            pact_conditions = arguments[3] if len(arguments) > 3 else {}
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("First argument must be a spirit")
+            
+            return spirit.create_familiar_with_pact(familiar_type, pact_terms, pact_conditions)
+        
+        def invoke_pact_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError("invoke_pact expects at least 3 arguments (spirit, familiar_true_name, action)")
+            spirit = arguments[0]
+            familiar_true_name = arguments[1]
+            action = arguments[2]
+            additional_args = arguments[3:] if len(arguments) > 3 else []
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("First argument must be a spirit")
+            
+            return spirit.invoke_pact(familiar_true_name, action, *additional_args)
+        
+        def revoke_pact_builtin(interpreter, arguments):
+            if len(arguments) != 2:
+                raise RuntimeError("revoke_pact expects 2 arguments (spirit, familiar_true_name)")
+            spirit = arguments[0]
+            familiar_true_name = arguments[1]
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("First argument must be a spirit")
+            
+            return spirit.revoke_pact(familiar_true_name)
+        
+        def oversee_domain_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("oversee_domain expects 1 argument (spirit)")
+            spirit = arguments[0]
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("Argument must be a spirit")
+            
+            return spirit.oversee_domain()
+        
+        def get_pact_summary_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("get_pact_summary expects 1 argument (familiar)")
+            familiar = arguments[0]
+            
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("Argument must be a familiar")
+            
+            return familiar.get_pact_summary()
+        
+        def get_spirit_pacts_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("get_spirit_pacts expects 1 argument (spirit)")
+            spirit = arguments[0]
+            
+            if not isinstance(spirit, GrimoireSpirit):
+                raise RuntimeError("Argument must be a spirit")
+            
+            # Return a simplified view of pacts
+            return {
+                "spirit_name": spirit.name,
+                "domain": spirit.domain,
+                "total_pacts": len(spirit.pacts),
+                "familiar_pacts": {
+                    true_name: {
+                        "terms": pact.pact_terms,
+                        "domain": pact.domain,
+                        "creation_time": pact.creation_timestamp
+                    }
+                    for true_name, pact in spirit.pacts.items()
+                }
+            }
+        
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -1501,6 +1665,14 @@ class GrimoireInterpreter:
         self.globals.define("enable_all_reporting", enable_all_reporting_builtin)
         self.globals.define("disable_all_reporting", disable_all_reporting_builtin)
         self.globals.define("get_familiar_stats", get_familiar_stats_builtin)
+        
+        # Pact system functions
+        self.globals.define("create_familiar_with_pact", create_familiar_with_pact_builtin)
+        self.globals.define("invoke_pact", invoke_pact_builtin)
+        self.globals.define("revoke_pact", revoke_pact_builtin)
+        self.globals.define("oversee_domain", oversee_domain_builtin)
+        self.globals.define("get_pact_summary", get_pact_summary_builtin)
+        self.globals.define("get_spirit_pacts", get_spirit_pacts_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
@@ -1518,6 +1690,10 @@ class GrimoireInterpreter:
             return f"<ritual {value.name}>"
         elif isinstance(value, GrimoireFamiliar):
             return f"<familiar {value.name} ({value.familiar_type})>"
+        elif isinstance(value, GrimoireSpirit):
+            return f"<spirit {value.name} ({value.spirit_type}) domain:{value.domain}>"
+        elif isinstance(value, GrimoireArchon):
+            return f"<archon {value.name} domain:{value.domain}>"
         else:
             return str(value)
     
