@@ -2119,6 +2119,16 @@ class GrimoireInterpreter:
             entity.set_position(int(x), int(y))
             return entity.position
 
+        def add_move_to_goal_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError('add_move_to_goal(ai_familiar, target_entity, radius)')
+            fam, target, radius = arguments[:3]
+            from grimoire.ai.pos_goals import MoveToGoal
+            if not hasattr(fam, 'add_custom_goal'):
+                raise RuntimeError('First arg must be AI familiar')
+            fam.add_custom_goal(MoveToGoal(target, int(radius)))  # type: ignore[attr-defined]
+            return 'move-to goal added'
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2161,6 +2171,7 @@ class GrimoireInterpreter:
         self.globals.define('pause_game', pause_game_builtin)
         self.globals.define('resume_game', resume_game_builtin)
         self.globals.define('move_entity', move_entity_builtin)
+        self.globals.define('add_move_to_goal', add_move_to_goal_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""

@@ -27,12 +27,25 @@ class AIFamiliar(_base_cls()):
         # Sockets for interfacing with planners / entity familiars
         self.add_socket("decision_output", direction="output")
         self.add_socket("state_input", direction="input")
+        from grimoire.game.spatial import get_global_grid
+        self.position = (0,0)
+        get_global_grid().add_entity(self, self.position)
+
+    def set_position(self, x: int, y: int):
+        from grimoire.game.spatial import get_global_grid
+        self.position = (x, y)
+        get_global_grid().move_entity(self, self.position)
 
     # ------------------------------------------------------------------
     # Goal & action registration helpers
     # ------------------------------------------------------------------
     def add_goal(self, name: str, priority: int, condition):
         self.planner.add_goal(Goal(name, priority, CallableCondition(condition)))
+
+    def add_custom_goal(self, goal):
+        from grimoire.ai.goals import Goal as _G
+        if isinstance(goal, _G):
+            self.planner.add_goal(goal)
 
     def add_action(self, goal_name: str, action_name: str, effect, precondition=lambda _: True):
         # find goal
