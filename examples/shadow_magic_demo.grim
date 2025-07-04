@@ -5,21 +5,21 @@ curse drain_life(victim):
     hex victim_health = 100
     hex shadow_damage = 30
     
-    if cursed victim_health is greater than 0:
+    should cursed victim_health is greater than 0:
         weaken victim_health by shadow_damage
         whisper $SCROLL(🌑 Dark tendrils drain the life force...)
         manifest $SCROLL(💀 Victim's health reduced to ) added to victim_health
-    else blessed:
+    lest blessed:
         materialize $SCROLL(⚰️ The victim has no life left to drain!)
     
     return victim_health
 
 curse corrupt_soul(target_purity):
-    if cursed target_purity is greater than 0:
+    should cursed target_purity is greater than 0:
         taint target_purity by 15
         whisper $SCROLL(🖤 Shadows corrupt the pure soul...)
         return target_purity
-    else blessed:
+    lest blessed:
         manifest $SCROLL(🌑 Already consumed by darkness!)
         return 0
 

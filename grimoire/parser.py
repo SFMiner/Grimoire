@@ -320,7 +320,7 @@ class GrimoireParser:
             
             if self.peek().type in [
                 TokenType.RITUAL, TokenType.ARTIFACT, TokenType.FAMILIAR,
-                TokenType.BIND, TokenType.IF_ENCHANTED, TokenType.WHILE_CHARGED,
+                TokenType.BIND, TokenType.SHOULD, TokenType.WHILE_CHARGED,
                 TokenType.FOR_EACH, TokenType.RETURN, TokenType.SCRY
             ]:
                 return
@@ -488,7 +488,7 @@ class GrimoireParser:
             return self.bind_statement()
         if self.match(TokenType.SCRY):
             return self.scry_statement()
-        if self.match(TokenType.IF_ENCHANTED):
+        if self.match(TokenType.SHOULD):
             return self.if_statement()
         if self.match(TokenType.WHILE_CHARGED):
             return self.while_statement()
@@ -554,7 +554,7 @@ class GrimoireParser:
             pass
         
         else_branch = None
-        if self.match(TokenType.ELSE_CURSED):
+        if self.match(TokenType.LEST):
             self.consume(TokenType.COLON, "Expected ':' after else")
             while self.match(TokenType.NEWLINE):
                 pass
@@ -568,7 +568,7 @@ class GrimoireParser:
         
         # Collect all statements at the same indentation level
         while (not self.is_at_end() and 
-               not self.check(TokenType.ELSE_CURSED) and
+                               not self.check(TokenType.LEST) and
                not self.check_next_declaration()):
             
             if self.match(TokenType.NEWLINE):
@@ -589,7 +589,7 @@ class GrimoireParser:
             if not isinstance(stmt, ExpressionStatement):
                 # Check if the next line is at the same or lesser indentation
                 # For now, we'll use a simple approach: stop if we see certain tokens
-                if (self.check(TokenType.ELSE_CURSED) or 
+                if (self.check(TokenType.LEST) or 
                     self.check(TokenType.IDENTIFIER) or
                     self.check_next_declaration()):
                     break

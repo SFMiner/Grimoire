@@ -42,8 +42,8 @@ class TokenType(Enum):
     DISMISS = auto()        # Familiar dismissal
     
     # Control Flow
-    IF_ENCHANTED = auto()   # if statement
-    ELSE_CURSED = auto()    # else statement
+    SHOULD = auto()         # if statement
+    LEST = auto()           # else statement
     WHILE_CHARGED = auto()  # while loop
     FOR_EACH = auto()       # for loop start
     ARCANA = auto()         # for loop variable
@@ -135,12 +135,12 @@ class GrimoireLexer:
         'or': TokenType.OR,
         'not': TokenType.NOT,
         'return': TokenType.RETURN,
+        'should': TokenType.SHOULD,
+        'lest': TokenType.LEST,
     }
     
     # Multi-word keywords and operators
     MULTI_WORD_TOKENS = {
-        'if enchanted': TokenType.IF_ENCHANTED,
-        'else cursed': TokenType.ELSE_CURSED,
         'while charged': TokenType.WHILE_CHARGED,
         'for each': TokenType.FOR_EACH,
         'break spell': TokenType.BREAK_SPELL,

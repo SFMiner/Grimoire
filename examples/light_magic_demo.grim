@@ -5,21 +5,21 @@ blessing healing_ritual(patient):
     bless patient_health = 50
     bless healing_power = 25
     
-    if blessed patient_health is lesser than 100:
+    should blessed patient_health is lesser than 100:
         empower patient_health by healing_power
         illuminate $SCROLL(✨ Healing light surrounds the patient...)
         reveal $SCROLL(🌟 Patient's health restored to ) added to patient_health
-    else darkened:
+    lest darkened:
         enlighten $SCROLL(💫 Patient is already at full health!)
     
     return patient_health
 
 blessing purify_corruption(target_corruption):
-    if blessed target_corruption is greater than 0:
+    should blessed target_corruption is greater than 0:
         purify target_corruption by 10
         illuminate $SCROLL(🕊️ Light cleanses the darkness...)
         return target_corruption
-    else darkened:
+    lest darkened:
         reveal $SCROLL(✨ Already pure!)
         return 0
 

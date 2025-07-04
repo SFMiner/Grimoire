@@ -81,30 +81,32 @@ class KeywordVariants:
                 MagicSchool.DIVINE: ['creation', 'vessel', 'avatar'],
                 MagicSchool.ARCANE: ['construct', 'schema', 'pattern'],
                 MagicSchool.TRICKSTER: ['disguise', 'illusion', 'form']
+            },
+            
+            # Conditionals
+            'SHOULD': {
+                MagicSchool.NEUTRAL: ['should', 'if', 'when'],
+                MagicSchool.LIGHT: ['should', 'if blessed', 'when pure'],
+                MagicSchool.SHADOW: ['should', 'if cursed', 'when dark'],
+                MagicSchool.NATURE: ['should', 'if flourishing', 'when alive'],
+                MagicSchool.DIVINE: ['should', 'if ordained', 'when holy'],
+                MagicSchool.ARCANE: ['should', 'if logical', 'when proven'],
+                MagicSchool.TRICKSTER: ['should', 'if amusing', 'when clever']
+            },
+            
+            'LEST': {
+                MagicSchool.NEUTRAL: ['lest', 'else', 'otherwise'],
+                MagicSchool.LIGHT: ['lest', 'else darkened', 'otherwise fallen'],
+                MagicSchool.SHADOW: ['lest', 'else blessed', 'otherwise pure'],
+                MagicSchool.NATURE: ['lest', 'else withered', 'otherwise dead'],
+                MagicSchool.DIVINE: ['lest', 'else forsaken', 'otherwise profane'],
+                MagicSchool.ARCANE: ['lest', 'else illogical', 'otherwise error'],
+                MagicSchool.TRICKSTER: ['lest', 'else boring', 'otherwise obvious']
             }
         }
         
-        # Multi-word conditionals
+        # Multi-word conditionals and operators
         self.multiword_variants = {
-            'IF_ENCHANTED': {
-                MagicSchool.NEUTRAL: ['if enchanted', 'if true', 'when'],
-                MagicSchool.LIGHT: ['if blessed', 'if pure', 'if sacred'],
-                MagicSchool.SHADOW: ['if cursed', 'if dark', 'if tainted'],
-                MagicSchool.NATURE: ['if flourishing', 'if growing', 'if alive'],
-                MagicSchool.DIVINE: ['if ordained', 'if holy', 'if righteous'],
-                MagicSchool.ARCANE: ['if logical', 'if proven', 'if calculated'],
-                MagicSchool.TRICKSTER: ['if amusing', 'if clever', 'if surprising']
-            },
-            
-            'ELSE_CURSED': {
-                MagicSchool.NEUTRAL: ['else cursed', 'else', 'otherwise'],
-                MagicSchool.LIGHT: ['else darkened', 'else fallen', 'else corrupted'],
-                MagicSchool.SHADOW: ['else blessed', 'else pure', 'else cleansed'],
-                MagicSchool.NATURE: ['else withered', 'else dead', 'else barren'],
-                MagicSchool.DIVINE: ['else forsaken', 'else profane', 'else sinful'],
-                MagicSchool.ARCANE: ['else illogical', 'else disproven', 'else error'],
-                MagicSchool.TRICKSTER: ['else boring', 'else obvious', 'else predictable']
-            },
             
             'WHILE_CHARGED': {
                 MagicSchool.NEUTRAL: ['while charged', 'while active', 'repeat while'],
@@ -293,10 +295,10 @@ def demonstrate_keyword_variants():
     # Example base code
     base_code = """blessing healing_spell():
     bless patient_health = 50
-    if blessed patient_health is lesser than 100:
+    should blessed patient_health is lesser than 100:
         empower patient_health by 25
         illuminate $SCROLL(Patient is healing!)
-    else darkened:
+    lest darkened:
         reveal $SCROLL(Patient is fully healed!)"""
     
     print(f"\n📜 Original Code (Light Magic School):")
