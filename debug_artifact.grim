@@ -1,0 +1,6 @@
+scry $SCROLL(Testing artifact definition...)
+
+artifact Steve:
+    essence name = $SCROLL(Steve)
+
+scry $SCROLL(Artifact defined successfully!)
