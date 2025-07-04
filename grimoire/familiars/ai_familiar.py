@@ -139,10 +139,19 @@ class AIFamiliar(_base_cls()):
         actions = []
         try:
             from grimoire.ai.actions import Action
+            # Use wrapper functions to ensure None return type
+            def explore_wrapper(f):
+                self._explore_action()
+                return None
+            
+            def communicate_wrapper(f):
+                self._communicate_action()
+                return None
+            
             actions = [
                 Action("wait", lambda f: None),
-                Action("explore", lambda f: self._explore_action()),
-                Action("communicate", lambda f: self._communicate_action()),
+                Action("explore", explore_wrapper),
+                Action("communicate", communicate_wrapper),
             ]
         except ImportError:
             pass
