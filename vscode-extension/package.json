@@ -1,7 +1,7 @@
 {
   "name": "grimoire-language",
   "displayName": "Grimoire Language Support",
-  "description": "Syntax highlighting and language support for the Grimoire magical programming language",
+  "description": "Syntax highlighting and intelligent thematic keyword suggestions for the Grimoire magical programming language",
   "version": "1.0.0",
   "publisher": "grimoire-lang",
   "repository": {
@@ -13,16 +13,23 @@
   },
   "categories": [
     "Programming Languages",
-    "Themes"
+    "Themes",
+    "Snippets"
   ],
   "keywords": [
     "grimoire",
     "magical",
     "programming",
     "fantasy",
-    "game-development"
+    "game-development",
+    "autocomplete",
+    "intellisense"
   ],
   "icon": "icon.png",
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:grimoire"
+  ],
   "contributes": {
     "languages": [
       {
@@ -56,13 +63,39 @@
         "uiTheme": "vs",
         "path": "./themes/grimoire-light.json"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "grimoire.showKeywordVariants",
+        "title": "Show Keyword Variants",
+        "category": "Grimoire"
+      },
+      {
+        "command": "grimoire.convertToMagicSchool",
+        "title": "Convert to Magic School",
+        "category": "Grimoire"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceExtname == .grim",
+          "command": "grimoire.showKeywordVariants",
+          "group": "1_modification"
+        }
+      ]
+    }
   },
   "scripts": {
-    "vscode:prepublish": "npm run package",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
     "package": "vsce package"
   },
   "devDependencies": {
+    "@types/vscode": "^1.70.0",
+    "@types/node": "^18.x",
+    "typescript": "^4.9.0",
     "@vscode/vsce": "^2.19.0"
   }
 }
