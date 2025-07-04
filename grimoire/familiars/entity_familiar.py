@@ -18,6 +18,7 @@ except ImportError:
     from grimoire.interpreter import GrimoireFamiliar
 
 from .types import FamiliarType, FamiliarCapability, get_familiar_spec, FamiliarCapabilityError
+from . import register_familiar_class
 
 
 @dataclass
@@ -34,6 +35,7 @@ class PropertyUpdate:
             self.timestamp = time.time()
 
 
+@register_familiar_class("Entity")
 class EntityFamiliar(GrimoireFamiliar):
     """
     Familiar specialized for entity property management and state handling.
