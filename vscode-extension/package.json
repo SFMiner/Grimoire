@@ -1,0 +1,68 @@
+{
+  "name": "grimoire-language",
+  "displayName": "Grimoire Language Support",
+  "description": "Syntax highlighting and language support for the Grimoire magical programming language",
+  "version": "1.0.0",
+  "publisher": "grimoire-lang",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SFMiner/Grimoire"
+  },
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Themes"
+  ],
+  "keywords": [
+    "grimoire",
+    "magical",
+    "programming",
+    "fantasy",
+    "game-development"
+  ],
+  "icon": "icon.png",
+  "contributes": {
+    "languages": [
+      {
+        "id": "grimoire",
+        "aliases": [
+          "Grimoire",
+          "grimoire"
+        ],
+        "extensions": [
+          ".grim",
+          ".grimoire"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "grimoire",
+        "scopeName": "source.grimoire",
+        "path": "./syntaxes/grimoire.tmGrammar.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Grimoire Dark Magic",
+        "uiTheme": "vs-dark",
+        "path": "./themes/grimoire-dark.json"
+      },
+      {
+        "label": "Grimoire Light Magic",
+        "uiTheme": "vs",
+        "path": "./themes/grimoire-light.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^2.19.0"
+  }
+}
