@@ -18,7 +18,7 @@ from .parser import (
     IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
     BreakStatement, ContinueStatement,
     RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
-    PlaneStatement, EffectStatement, CommandStatement
+    PlaneStatement, ShiftStatement, EffectStatement, CommandStatement
 )
 from .ai_system import (
     WorldModel, AgentWorldView, Entity, DecisionEngine, GoalEvaluator,
@@ -26,6 +26,7 @@ from .ai_system import (
     create_archon_actions, create_spirit_actions, create_familiar_actions,
     create_utility_functions_for_agent
 )
+from .planes import PlaneManager, PlaneProperties, PlaneType, get_plane_manager
 
 
 # =============================================================================
@@ -1728,6 +1729,7 @@ class GrimoireInterpreter:
         self.interaction_matrix = InteractionMatrix()  # Agent relationships
         self.familiar_wrangler = FamiliarWrangler()  # Familiar monitoring system
         self.pact_registry = PactRegistry()  # Global pact registry
+        self.plane_manager = get_plane_manager()  # Planar system
         
         # Enhanced AI system components
         self.world_model = WorldModel(width=100, height=100)  # 100x100 world grid
@@ -2314,6 +2316,27 @@ class GrimoireInterpreter:
                     print(self._grimoire_to_string(result))
             else:
                 raise RuntimeError(f"Can only command familiars, not {type(familiar_expr)}")
+        
+        elif isinstance(statement, PlaneStatement):
+            # Handle plane definitions
+            plane_properties = PlaneProperties(PlaneType.MATERIAL)  # Default to material plane
+            plane = self.plane_manager.create_plane(statement.name, plane_properties)
+            
+            # Execute plane body in the plane context
+            previous_plane = self.plane_manager.current_plane
+            self.plane_manager.shift_to_plane(statement.name)
+            try:
+                self.execute(statement.body)
+            finally:
+                # Return to previous plane
+                if previous_plane:
+                    self.plane_manager.shift_to_plane(previous_plane)
+        
+        elif isinstance(statement, ShiftStatement):
+            # Handle plane shifts
+            success = self.plane_manager.shift_to_plane(statement.target_plane)
+            if not success:
+                raise RuntimeError(f"Failed to shift to plane '{statement.target_plane}'")
         
         else:
             raise RuntimeError(f"Unknown statement type: {type(statement)}")
