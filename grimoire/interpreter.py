@@ -2040,6 +2040,37 @@ class GrimoireInterpreter:
             fam.log_activity("inter_familiar", "Broadcast message", {"message": str(msg_obj), "receivers": len(sock.connections)})
             return "broadcast complete"
 
+        # ------------------------------------------------------------------
+        # AI goal/action helpers
+        # ------------------------------------------------------------------
+        def add_goal_builtin(interpreter, arguments):
+            if len(arguments) < 4:
+                raise RuntimeError("add_goal expects (ai_familiar, name, priority, condition_callable)")
+            fam, name, priority, condition = arguments[:4]
+            if not isinstance(fam, GrimoireFamiliar) or not hasattr(fam, 'add_goal'):
+                raise RuntimeError("First argument must be an AI familiar")
+            fam.add_goal(name, int(priority), condition)  # type: ignore[attr-defined]
+            return "goal added"
+
+        def add_action_builtin(interpreter, arguments):
+            if len(arguments) < 4:
+                raise RuntimeError("add_action expects (ai_familiar, goal_name, action_name, effect_callable, [precondition])")
+            fam, goal_name, action_name, effect = arguments[:4]
+            precond = arguments[4] if len(arguments) > 4 else (lambda _: True)
+            if not isinstance(fam, GrimoireFamiliar) or not hasattr(fam, 'add_action'):
+                raise RuntimeError("First argument must be an AI familiar")
+            fam.add_action(goal_name, action_name, effect, precond)  # type: ignore[attr-defined]
+            return "action added"
+
+        def update_ai_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("update_ai expects 1 argument (ai_familiar)")
+            fam = arguments[0]
+            if not isinstance(fam, GrimoireFamiliar) or not hasattr(fam, 'plan'):
+                raise RuntimeError("Argument must be an AI familiar")
+            fam.plan()  # type: ignore[attr-defined]
+            return "ai updated"
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2073,6 +2104,9 @@ class GrimoireInterpreter:
         self.globals.define("link_familiars", link_familiars_builtin)
         self.globals.define("send_familiar_message", send_familiar_message_builtin)
         self.globals.define("familiar_broadcast", familiar_broadcast_builtin)
+        self.globals.define("add_goal", add_goal_builtin)
+        self.globals.define("add_action", add_action_builtin)
+        self.globals.define("update_ai", update_ai_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
