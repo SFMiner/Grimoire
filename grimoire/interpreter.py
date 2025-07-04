@@ -2114,9 +2114,8 @@ class GrimoireInterpreter:
             if len(arguments) != 3:
                 raise RuntimeError('move_entity expects (entity_familiar, x, y)')
             entity, x, y = arguments
-            from grimoire.familiars.entity_familiar import EntityFamiliar
-            if not isinstance(entity, EntityFamiliar):
-                raise RuntimeError('First arg must be Entity familiar')
+            if not hasattr(entity, 'set_position'):
+                raise RuntimeError('Familiar cannot be positioned')
             entity.set_position(int(x), int(y))
             return entity.position
 

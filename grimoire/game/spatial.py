@@ -54,6 +54,21 @@ class SpatialGrid:
                         res.append(ent)
         return res
 
+    # Simple line-of-sight: returns True if straight-line distance <= radius and no obstacles (placeholder)
+    def line_of_sight(self, a: Position, b: Position, max_distance: int | None = None) -> bool:
+        dx = b[0] - a[0]
+        dy = b[1] - a[1]
+        dist_sq = dx * dx + dy * dy
+        if max_distance is not None and dist_sq > max_distance * max_distance:
+            return False
+        # No obstacle system yet – always visible within max_distance
+        return True
+
+    def query_visible(self, center: Position, radius: int) -> List[Any]:
+        """Return entities within *radius* that have direct line-of-sight to *center*."""
+        candidates = self.query_radius(center, radius)
+        return [e for e in candidates if self.line_of_sight(center, self.positions[e], radius)]
+
 # Global shared grid ---------------------------------------------------------
 _global_grid: SpatialGrid | None = None
 

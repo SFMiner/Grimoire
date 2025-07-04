@@ -22,6 +22,7 @@ class AIFamiliar(_base_cls()):
         self.category = FamiliarType.AI
         self.goals = []  # To be expanded in future phases
         self.planner = AIPlanner()
+        self.latest_perception = []
 
         # Sockets for interfacing with planners / entity familiars
         self.add_socket("decision_output", direction="output")
@@ -41,6 +42,13 @@ class AIFamiliar(_base_cls()):
                 break
 
     def plan(self):
+        # update internal perception before planning
+        try:
+            data = self.receive_from_socket('state_input')
+            if isinstance(data, list):
+                self.latest_perception = data
+        except RuntimeError:
+            pass
         action = self.planner.plan(self)
         if action:
             action.execute(self)

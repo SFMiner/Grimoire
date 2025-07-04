@@ -34,7 +34,8 @@ class PerceptionFamiliar(_base_cls()):
 
     def scan_environment(self):
         from grimoire.game.spatial import get_global_grid
-        entities = get_global_grid().query_radius(self.position, self.vision_range)
+        grid = get_global_grid()
+        entities = grid.query_visible(self.position, self.vision_range)
         perceived = [e.name for e in entities if e is not self]
         self.send_to_socket("perception_output", perceived)
 
