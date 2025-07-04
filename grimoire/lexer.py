@@ -27,6 +27,8 @@ class TokenType(Enum):
     RITUAL = auto()         # Function definition
     ARTIFACT = auto()       # Class definition
     FAMILIAR = auto()       # Familiar definition
+    ARCHON = auto()         # Archon definition (strategic AI)
+    SPIRIT = auto()         # Spirit definition (tactical AI)
     ESSENCE = auto()        # Class attribute
     INVOKE = auto()         # Constructor/function call
     SCRY = auto()           # Print/output
@@ -116,6 +118,8 @@ class GrimoireLexer:
         'ritual': TokenType.RITUAL,
         'artifact': TokenType.ARTIFACT,
         'familiar': TokenType.FAMILIAR,
+        'archon': TokenType.ARCHON,
+        'spirit': TokenType.SPIRIT,
         'essence': TokenType.ESSENCE,
 
         'scry': TokenType.SCRY,

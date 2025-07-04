@@ -17,8 +17,8 @@ from .parser import (
     PropertyAssignmentExpression, ExpressionStatement, BindStatement, ScryStatement,
     IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
     BreakStatement, ContinueStatement,
-    RitualStatement, ArtifactStatement, FamiliarStatement, PlaneStatement,
-    EffectStatement, CommandStatement
+    RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
+    PlaneStatement, EffectStatement, CommandStatement
 )
 
 
@@ -234,6 +234,348 @@ class LogScribeCapability(FamiliarCapability):
             raise RuntimeError(f"Unknown log query: {query}")
 
 
+# The GrimoireFamiliar class is now defined below with full hierarchical agent integration
+
+
+# =============================================================================
+# Hierarchical Agent System: Goals, Archons, Spirits
+# =============================================================================
+
+@dataclass
+class Goal:
+    """Represents a goal for an agent."""
+    name: str
+    priority: int
+    weight: float
+    satisfaction_threshold: float
+    current_satisfaction: float = 0.0
+    
+    def is_satisfied(self) -> bool:
+        """Check if the goal is satisfied."""
+        return self.current_satisfaction >= self.satisfaction_threshold
+    
+    def get_urgency(self) -> float:
+        """Calculate urgency based on satisfaction level."""
+        return (1.0 - self.current_satisfaction) * self.weight
+
+
+class GoalSeeker:
+    """Mixin class for agents that can pursue goals."""
+    
+    def __init__(self):
+        self.goals: List[Goal] = []
+    
+    def add_goal(self, name: str, priority: int, weight: float = 1.0, threshold: float = 1.0):
+        """Add a goal to this agent."""
+        goal = Goal(name, priority, weight, threshold)
+        self.goals.append(goal)
+        # Sort by priority (highest first)
+        self.goals.sort(key=lambda g: g.priority, reverse=True)
+    
+    def evaluate_goals(self) -> Dict[str, float]:
+        """Evaluate satisfaction of all goals."""
+        satisfaction = {}
+        for goal in self.goals:
+            satisfaction[goal.name] = goal.current_satisfaction
+        return satisfaction
+    
+    def get_priority_goal(self) -> Optional[Goal]:
+        """Get the highest priority unsatisfied goal."""
+        for goal in self.goals:
+            if not goal.is_satisfied():
+                return goal
+        return None
+    
+    def update_goal_satisfaction(self, goal_name: str, satisfaction: float):
+        """Update the satisfaction level of a goal."""
+        for goal in self.goals:
+            if goal.name == goal_name:
+                goal.current_satisfaction = max(0.0, min(1.0, satisfaction))
+                break
+
+
+class InteractionMatrix:
+    """Manages relationships and interactions between agents."""
+    
+    def __init__(self):
+        self.relationships: Dict[str, str] = {}  # "agent1-agent2" -> "relationship_type"
+        self.communication_protocols: Dict[str, str] = {}
+        self.cooperation_history: Dict[str, List[str]] = {}
+    
+    def establish_relationship(self, agent_a: str, agent_b: str, relationship_type: str):
+        """Establish a relationship between two agents."""
+        key = f"{agent_a}-{agent_b}"
+        reverse_key = f"{agent_b}-{agent_a}"
+        
+        self.relationships[key] = relationship_type
+        self.relationships[reverse_key] = relationship_type
+        
+        # Set communication protocol based on relationship
+        if relationship_type == "cooperative":
+            protocol = "full_sharing"
+        elif relationship_type == "competitive":
+            protocol = "limited_sharing"
+        elif relationship_type == "hierarchical":
+            protocol = "command_structure"
+        else:
+            protocol = "minimal_sharing"
+        
+        self.communication_protocols[key] = protocol
+        self.communication_protocols[reverse_key] = protocol
+    
+    def get_relationship(self, agent_a: str, agent_b: str) -> str:
+        """Get the relationship type between two agents."""
+        key = f"{agent_a}-{agent_b}"
+        return self.relationships.get(key, "neutral")
+    
+    def can_communicate(self, agent_a: str, agent_b: str) -> bool:
+        """Check if two agents can communicate."""
+        relationship = self.get_relationship(agent_a, agent_b)
+        return relationship != "hostile"
+
+
+class GrimoireArchon(GoalSeeker):
+    """Strategic-level AI agent that manages multiple spirits."""
+    
+    def __init__(self, name: str, domain: str):
+        super().__init__()
+        self.name = name
+        self.domain = domain
+        self.spirits: List['GrimoireSpirit'] = []
+        self.resource_budget = 1000
+        self.strategic_goals: List[str] = []
+        self.methods: Dict[str, GrimoireFunction] = {}
+        self.state = "active"
+        
+        # Initialize domain-specific goals
+        self.initialize_strategic_goals()
+    
+    def initialize_strategic_goals(self):
+        """Initialize goals based on domain."""
+        if self.domain == "Combat":
+            self.add_goal("territorial_control", 10, 1.0, 0.8)
+            self.add_goal("force_projection", 8, 0.8, 0.7)
+            self.add_goal("resource_security", 6, 0.6, 0.6)
+        elif self.domain == "Economy":
+            self.add_goal("resource_maximization", 10, 1.0, 0.8)
+            self.add_goal("trade_expansion", 7, 0.7, 0.6)
+            self.add_goal("infrastructure_development", 5, 0.5, 0.5)
+        elif self.domain == "Diplomacy":
+            self.add_goal("alliance_building", 9, 0.9, 0.7)
+            self.add_goal("information_gathering", 8, 0.8, 0.6)
+            self.add_goal("reputation_management", 6, 0.6, 0.5)
+        else:
+            # General archon
+            self.add_goal("survival", 10, 1.0, 0.8)
+            self.add_goal("growth", 5, 0.5, 0.5)
+    
+    def summon_spirit(self, spirit_type: str, objectives: List[str]) -> 'GrimoireSpirit':
+        """Create and manage a new spirit."""
+        spirit = GrimoireSpirit(f"{self.name}_{spirit_type}_{len(self.spirits)}", spirit_type)
+        spirit.archon_ref = self
+        
+        # Assign objectives to spirit
+        for i, objective in enumerate(objectives):
+            spirit.add_goal(objective, 10 - i)
+        
+        self.spirits.append(spirit)
+        return spirit
+    
+    def autonomous_update(self):
+        """Perform autonomous strategic decision making."""
+        if self.state != "active":
+            return
+        
+        # Evaluate current strategic situation
+        priority_goal = self.get_priority_goal()
+        if priority_goal:
+            self.execute_strategic_action(priority_goal)
+        
+        # Update spirits
+        for spirit in self.spirits:
+            spirit.autonomous_update()
+        
+        # Resource allocation
+        self.allocate_resources()
+    
+    def execute_strategic_action(self, goal: Goal):
+        """Execute a strategic action to pursue a goal."""
+        # This would contain domain-specific strategic logic
+        # For now, we'll implement basic goal pursuit
+        if goal.name == "territorial_control":
+            self.expand_territory()
+        elif goal.name == "resource_maximization":
+            self.optimize_resource_gathering()
+        elif goal.name == "alliance_building":
+            self.seek_alliances()
+        
+        # Update goal satisfaction (simplified)
+        goal.current_satisfaction += 0.1
+    
+    def expand_territory(self):
+        """Strategic action: expand territorial control."""
+        # Summon combat spirits if needed
+        if len([s for s in self.spirits if s.spirit_type == "Guardian"]) < 2:
+            self.summon_spirit("Guardian", ["defend_territory", "patrol_borders"])
+    
+    def optimize_resource_gathering(self):
+        """Strategic action: optimize resource gathering."""
+        # Summon economic spirits if needed
+        if len([s for s in self.spirits if s.spirit_type == "Harvester"]) < 1:
+            self.summon_spirit("Harvester", ["gather_resources", "expand_operations"])
+    
+    def seek_alliances(self):
+        """Strategic action: seek diplomatic alliances."""
+        # This would involve inter-archon communication
+        pass
+    
+    def allocate_resources(self):
+        """Allocate resources among spirits."""
+        if self.resource_budget > 0 and self.spirits:
+            allocation_per_spirit = self.resource_budget // len(self.spirits)
+            for spirit in self.spirits:
+                spirit.resource_allocation = allocation_per_spirit
+
+
+class GrimoireSpirit(GoalSeeker):
+    """Tactical-level AI agent that manages multiple familiars."""
+    
+    def __init__(self, name: str, spirit_type: str):
+        super().__init__()
+        self.name = name
+        self.spirit_type = spirit_type
+        self.archon_ref: Optional[GrimoireArchon] = None
+        self.familiars: List['GrimoireFamiliar'] = []
+        self.resource_allocation = 0
+        self.cooperation_network: List['GrimoireSpirit'] = []
+        self.methods: Dict[str, GrimoireFunction] = {}
+        self.state = "active"
+        
+        # Initialize type-specific behaviors
+        self.initialize_tactical_behaviors()
+    
+    def initialize_tactical_behaviors(self):
+        """Initialize behaviors based on spirit type."""
+        if self.spirit_type == "Guardian":
+            self.add_goal("defensive_positioning", 9, 0.9, 0.7)
+            self.add_goal("threat_assessment", 8, 0.8, 0.6)
+            self.add_goal("patrol_completion", 6, 0.6, 0.5)
+        elif self.spirit_type == "Scout":
+            self.add_goal("exploration_coverage", 10, 1.0, 0.8)
+            self.add_goal("information_gathering", 9, 0.9, 0.7)
+            self.add_goal("safe_return", 8, 0.8, 0.6)
+        elif self.spirit_type == "Harvester":
+            self.add_goal("resource_collection", 10, 1.0, 0.8)
+            self.add_goal("efficiency_optimization", 7, 0.7, 0.6)
+            self.add_goal("site_security", 6, 0.6, 0.5)
+        else:
+            # General spirit
+            self.add_goal("objective_completion", 8, 0.8, 0.6)
+            self.add_goal("familiar_coordination", 6, 0.6, 0.5)
+    
+    def spawn_familiar(self, familiar_type: str, objectives: List[str]) -> GrimoireFamiliar:
+        """Create and manage a new familiar."""
+        capabilities = FAMILIAR_TYPES.get(familiar_type, lambda: {})()
+        familiar = GrimoireFamiliar(f"{self.name}_{familiar_type}_{len(self.familiars)}", familiar_type, capabilities)
+        familiar.spirit_ref = self
+        
+        self.familiars.append(familiar)
+        return familiar
+    
+    def autonomous_update(self):
+        """Perform autonomous tactical decision making."""
+        if self.state != "active":
+            return
+        
+        # Assess current situation
+        priority_goal = self.get_priority_goal()
+        if priority_goal:
+            self.execute_tactical_action(priority_goal)
+        
+        # Coordinate with peer spirits
+        for peer in self.cooperation_network:
+            self.coordinate_with(peer)
+        
+        # Update familiars
+        for familiar in self.familiars:
+            familiar.autonomous_update()
+        
+        # Report to archon
+        self.report_to_archon()
+    
+    def execute_tactical_action(self, goal: Goal):
+        """Execute a tactical action to pursue a goal."""
+        if goal.name == "defensive_positioning":
+            self.position_defensively()
+        elif goal.name == "exploration_coverage":
+            self.explore_area()
+        elif goal.name == "resource_collection":
+            self.collect_resources()
+        
+        # Update goal satisfaction
+        goal.current_satisfaction += 0.2
+    
+    def position_defensively(self):
+        """Tactical action: position familiars defensively."""
+        # Ensure we have scout familiars
+        if len([f for f in self.familiars if f.familiar_type == "Scout"]) < 1:
+            self.spawn_familiar("Scout", ["perimeter_patrol"])
+    
+    def explore_area(self):
+        """Tactical action: explore unknown areas."""
+        # Spawn scout familiars for exploration
+        if len([f for f in self.familiars if f.familiar_type == "Scout"]) < 2:
+            self.spawn_familiar("Scout", ["area_exploration"])
+    
+    def collect_resources(self):
+        """Tactical action: collect resources."""
+        # Spawn harvester familiars
+        if len([f for f in self.familiars if f.familiar_type == "Harvester"]) < 1:
+            self.spawn_familiar("Harvester", ["resource_collection"])
+    
+    def coordinate_with(self, other_spirit: 'GrimoireSpirit'):
+        """Coordinate actions with another spirit."""
+        # Find common goals
+        common_goals = set(g.name for g in self.goals) & set(g.name for g in other_spirit.goals)
+        
+        if common_goals:
+            # Negotiate joint action for first common goal
+            joint_goal = list(common_goals)[0]
+            self.negotiate_joint_action(other_spirit, joint_goal)
+    
+    def negotiate_joint_action(self, other_spirit: 'GrimoireSpirit', goal_name: str):
+        """Negotiate a joint action with another spirit."""
+        # Simple cooperation: share resource allocation
+        if self.resource_allocation > 0:
+            shared_resources = self.resource_allocation // 2
+            other_spirit.resource_allocation += shared_resources
+            self.resource_allocation -= shared_resources
+    
+    def report_to_archon(self):
+        """Report status to managing archon."""
+        if self.archon_ref:
+            # Update archon's goal satisfaction based on our progress
+            for goal in self.goals:
+                if goal.current_satisfaction > 0.5:
+                    # Find corresponding archon goal and update it
+                    for archon_goal in self.archon_ref.goals:
+                        if self.is_related_goal(goal.name, archon_goal.name):
+                            archon_goal.current_satisfaction += 0.05
+                            break
+    
+    def is_related_goal(self, spirit_goal: str, archon_goal: str) -> bool:
+        """Check if a spirit goal relates to an archon goal."""
+        # Simplified relationship mapping
+        relations = {
+            "defensive_positioning": ["territorial_control", "force_projection"],
+            "exploration_coverage": ["territorial_control", "information_gathering"],
+            "resource_collection": ["resource_maximization", "resource_security"]
+        }
+        
+        return archon_goal in relations.get(spirit_goal, [])
+
+
+# Enhanced Familiar with Spirit Integration
 class GrimoireFamiliar:
     """Represents a runtime familiar - a semi-autonomous agent."""
     
@@ -242,8 +584,96 @@ class GrimoireFamiliar:
         self.familiar_type = familiar_type
         self.capabilities = capabilities
         self.charge = None  # The entity this familiar manages
+        self.spirit_ref: Optional[GrimoireSpirit] = None  # Reference to managing spirit
         self.state = "active"  # active, inactive, dismissed
         self.properties = {}
+        self.reactive_behaviors = []
+        self.interaction_protocols = []
+        
+        # Initialize reactive behaviors
+        self.initialize_reactive_behaviors()
+    
+    def initialize_reactive_behaviors(self):
+        """Initialize reactive behaviors based on type."""
+        if self.familiar_type == "Scout":
+            self.reactive_behaviors.extend(["proximity_response", "threat_detection", "path_finding"])
+        elif self.familiar_type == "Harvester":
+            self.reactive_behaviors.extend(["resource_seeking", "efficiency_optimization", "storage_management"])
+        elif self.familiar_type == "Guardian":
+            self.reactive_behaviors.extend(["threat_assessment", "defensive_positioning", "ally_protection"])
+        else:
+            # Default behaviors
+            self.reactive_behaviors.extend(["proximity_response", "basic_navigation"])
+    
+    def autonomous_update(self):
+        """Perform autonomous operational-level actions."""
+        if self.state != "active":
+            return
+        
+        # Execute reactive behaviors
+        for behavior in self.reactive_behaviors:
+            self.execute_reactive_behavior(behavior)
+        
+        # Interact with nearby agents
+        self.interact_with_nearby_agents()
+        
+        # Report to spirit
+        self.report_to_spirit()
+    
+    def execute_reactive_behavior(self, behavior: str):
+        """Execute a reactive behavior."""
+        if behavior == "proximity_response":
+            self.respond_to_proximity()
+        elif behavior == "threat_detection":
+            self.detect_threats()
+        elif behavior == "resource_seeking":
+            self.seek_resources()
+        elif behavior == "efficiency_optimization":
+            self.optimize_efficiency()
+    
+    def respond_to_proximity(self):
+        """React to nearby entities."""
+        # Simplified proximity response
+        pass
+    
+    def detect_threats(self):
+        """Detect and respond to threats."""
+        # Simplified threat detection
+        pass
+    
+    def seek_resources(self):
+        """Seek out resources to collect."""
+        # Simplified resource seeking
+        pass
+    
+    def optimize_efficiency(self):
+        """Optimize operational efficiency."""
+        # Simplified efficiency optimization
+        pass
+    
+    def interact_with_nearby_agents(self):
+        """Interact with nearby familiars and spirits."""
+        # Simplified agent interaction
+        pass
+    
+    def report_to_spirit(self):
+        """Report status to managing spirit."""
+        if self.spirit_ref:
+            # Update spirit's goal satisfaction based on our actions
+            for goal in self.spirit_ref.goals:
+                if self.contributes_to_goal(goal.name):
+                    goal.current_satisfaction += 0.01
+    
+    def contributes_to_goal(self, goal_name: str) -> bool:
+        """Check if this familiar contributes to a goal."""
+        # Simplified goal contribution mapping
+        contributions = {
+            "Scout": ["exploration_coverage", "information_gathering", "threat_assessment"],
+            "Harvester": ["resource_collection", "efficiency_optimization"],
+            "Guardian": ["defensive_positioning", "threat_assessment", "patrol_completion"]
+        }
+        
+        return goal_name in contributions.get(self.familiar_type, [])
     
     def command(self, command: str, arguments: List[Any]) -> Any:
         """Execute a command on this familiar."""
@@ -286,6 +716,8 @@ class GrimoireFamiliar:
             return self.charge
         elif query == "capabilities":
             return list(self.capabilities.keys())
+        elif query == "spirit":
+            return self.spirit_ref.name if self.spirit_ref else None
         
         # Look for capability that can handle this query
         for capability in self.capabilities.values():
@@ -307,6 +739,9 @@ FAMILIAR_TYPES = {
     "MemoryImp": lambda: {"memory": MemoryImpCapability()},
     "FileSprite": lambda: {"file": FileSpriteCapability()},
     "LogScribe": lambda: {"log": LogScribeCapability()},
+    "Scout": lambda: {},  # Operational scouting
+    "Harvester": lambda: {},  # Resource collection
+    "Guardian": lambda: {},  # Defensive operations
     "TimeKeeper": lambda: {},  # TODO: Implement time-based capabilities
     "ErrorBanshee": lambda: {},  # TODO: Implement error handling capabilities
 }
@@ -389,6 +824,9 @@ class GrimoireInterpreter:
         self.globals = Environment()
         self.environment = self.globals
         self.familiars = {}  # Active familiars
+        self.archons = {}   # Active archons
+        self.spirits = {}   # Active spirits
+        self.interaction_matrix = InteractionMatrix()  # Agent relationships
         
         # Define built-in functions
         self._define_builtins()
@@ -417,8 +855,44 @@ class GrimoireInterpreter:
             self.familiars[familiar_name] = familiar
             return familiar
         
+        # Built-in function for creating archons
+        def create_archon_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("create_archon expects 2 arguments (name, domain)")
+            archon_name = arguments[0]
+            domain = arguments[1]
+            
+            archon = GrimoireArchon(archon_name, domain)
+            self.archons[archon_name] = archon
+            return archon
+        
+        # Built-in function for creating spirits
+        def create_spirit_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("create_spirit expects 2 arguments (name, spirit_type)")
+            spirit_name = arguments[0]
+            spirit_type = arguments[1]
+            
+            spirit = GrimoireSpirit(spirit_name, spirit_type)
+            self.spirits[spirit_name] = spirit
+            return spirit
+        
+        # Built-in function for autonomous updates
+        def autonomous_update_builtin(interpreter, arguments):
+            # Update all agents autonomously
+            for archon in self.archons.values():
+                archon.autonomous_update()
+            for spirit in self.spirits.values():
+                spirit.autonomous_update()
+            for familiar in self.familiars.values():
+                familiar.autonomous_update()
+            return "Autonomous update completed"
+        
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
+        self.globals.define("create_archon", create_archon_builtin)
+        self.globals.define("create_spirit", create_spirit_builtin)
+        self.globals.define("autonomous_update", autonomous_update_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
