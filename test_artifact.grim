@@ -1,0 +1,10 @@
+artifact Steve:
+    essence name = $SCROLL(Steve)
+    essence age = 25
+
+    ritual greet():
+        scry $SCROLL(Hello, I am ) added to name
+
+# Create an instance
+bind steve_instance = conjure Steve upon
+steve_instance.greet upon

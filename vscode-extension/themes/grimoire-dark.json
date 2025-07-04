@@ -1,0 +1,177 @@
+{
+  "name": "Grimoire Dark Magic",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1a1a2e",
+    "editor.foreground": "#e5e5e5",
+    "activityBar.background": "#16213e",
+    "sideBar.background": "#0f3460",
+    "statusBar.background": "#533a83"
+  },
+  "tokenColors": [
+    {
+      "name": "Comments",
+      "scope": "comment",
+      "settings": {
+        "fontStyle": "italic",
+        "foreground": "#6272a4"
+      }
+    },
+    {
+      "name": "Strings - Scroll literals",
+      "scope": "string.quoted.scroll.grimoire",
+      "settings": {
+        "foreground": "#f1fa8c"
+      }
+    },
+    {
+      "name": "Numbers",
+      "scope": "constant.numeric",
+      "settings": {
+        "foreground": "#bd93f9"
+      }
+    },
+    {
+      "name": "Light Magic Keywords",
+      "scope": [
+        "keyword.declaration.function.light.grimoire",
+        "keyword.assignment.light.grimoire", 
+        "keyword.output.light.grimoire",
+        "keyword.creation.light.grimoire",
+        "keyword.declaration.class.light.grimoire"
+      ],
+      "settings": {
+        "foreground": "#ffd700",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Shadow Magic Keywords",
+      "scope": [
+        "keyword.declaration.function.shadow.grimoire",
+        "keyword.assignment.shadow.grimoire",
+        "keyword.output.shadow.grimoire", 
+        "keyword.creation.shadow.grimoire",
+        "keyword.declaration.class.shadow.grimoire"
+      ],
+      "settings": {
+        "foreground": "#8b008b",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Arcane Magic Keywords",
+      "scope": [
+        "keyword.declaration.function.arcane.grimoire",
+        "keyword.assignment.arcane.grimoire",
+        "keyword.output.arcane.grimoire",
+        "keyword.creation.arcane.grimoire", 
+        "keyword.declaration.class.arcane.grimoire"
+      ],
+      "settings": {
+        "foreground": "#4169e1",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Nature Magic Keywords",
+      "scope": [
+        "keyword.declaration.function.nature.grimoire",
+        "keyword.assignment.nature.grimoire",
+        "keyword.output.nature.grimoire",
+        "keyword.creation.nature.grimoire",
+        "keyword.declaration.class.nature.grimoire"
+      ],
+      "settings": {
+        "foreground": "#228b22",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Divine Magic Keywords",
+      "scope": [
+        "keyword.declaration.function.divine.grimoire",
+        "keyword.assignment.divine.grimoire",
+        "keyword.output.divine.grimoire",
+        "keyword.creation.divine.grimoire",
+        "keyword.declaration.class.divine.grimoire"
+      ],
+      "settings": {
+        "foreground": "#87ceeb",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Trickster Magic Keywords",
+      "scope": [
+        "keyword.declaration.function.trickster.grimoire",
+        "keyword.assignment.trickster.grimoire",
+        "keyword.output.trickster.grimoire",
+        "keyword.creation.trickster.grimoire",
+        "keyword.declaration.class.trickster.grimoire"
+      ],
+      "settings": {
+        "foreground": "#ff6347",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Neutral Magic Keywords",
+      "scope": [
+        "keyword.declaration.function.neutral.grimoire",
+        "keyword.assignment.neutral.grimoire",
+        "keyword.output.neutral.grimoire", 
+        "keyword.creation.neutral.grimoire",
+        "keyword.declaration.class.neutral.grimoire"
+      ],
+      "settings": {
+        "foreground": "#50fa7b",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Control Flow",
+      "scope": [
+        "keyword.control.conditional.grimoire",
+        "keyword.control.loop.grimoire",
+        "keyword.control.flow.grimoire"
+      ],
+      "settings": {
+        "foreground": "#ff79c6",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Magical Operators",
+      "scope": [
+        "keyword.operator.arithmetic.magical.grimoire",
+        "keyword.operator.comparison.magical.grimoire"
+      ],
+      "settings": {
+        "foreground": "#ffb86c"
+      }
+    },
+    {
+      "name": "Function Calls",
+      "scope": "entity.name.function.grimoire",
+      "settings": {
+        "foreground": "#8be9fd"
+      }
+    },
+    {
+      "name": "Upon keyword",
+      "scope": "keyword.control.call.grimoire",
+      "settings": {
+        "foreground": "#ff79c6",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "Variables",
+      "scope": "variable.other.grimoire",
+      "settings": {
+        "foreground": "#f8f8f2"
+      }
+    }
+  ]
+}

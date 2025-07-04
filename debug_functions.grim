@@ -1,0 +1,8 @@
+scry $SCROLL(Testing function definitions and calls...)
+
+ritual simple_test():
+    scry $SCROLL(Simple function works!)
+
+scry $SCROLL(About to call function...)
+simple_test upon
+scry $SCROLL(Function call completed!)

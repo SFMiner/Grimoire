@@ -1,0 +1,29 @@
+scry $SCROLL(🧙‍♂️ Testing Thematic Keyword Variants!)
+
+# Light Magic Style
+blessing light_test():
+    bless power = 100
+    illuminate $SCROLL(✨ Light magic: ) added to power
+
+# Shadow Magic Style  
+curse shadow_test():
+    hex energy = 50
+    whisper $SCROLL(🌑 Shadow magic: ) added to energy
+
+# Arcane Magic Style
+formula arcane_test():
+    inscribe value = 75
+    divine $SCROLL(🔮 Arcane magic: ) added to value
+
+# Test the new should/lest syntax
+should 1 is equal to 1:
+    scry $SCROLL(✅ Should/lest syntax working!)
+lest:
+    scry $SCROLL(❌ Should/lest failed!)
+
+# Call all the functions
+light_test upon
+shadow_test upon  
+arcane_test upon
+
+scry $SCROLL(🎉 All keyword variants working!)

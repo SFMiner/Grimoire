@@ -1,0 +1,18 @@
+scry $SCROLL(Testing individual thematic keywords...)
+
+# Test Light Magic keywords
+scry $SCROLL(Testing 'blessing' keyword...)
+blessing light_magic():
+    scry $SCROLL(✨ Blessing function works!)
+
+scry $SCROLL(Testing 'bless' keyword...)  
+bless health = 100
+scry health
+
+scry $SCROLL(Testing 'illuminate' keyword...)
+illuminate $SCROLL(💡 Illuminate works!)
+
+scry $SCROLL(Calling blessing function...)
+light_magic upon
+
+scry $SCROLL(🎉 Thematic keywords working!)

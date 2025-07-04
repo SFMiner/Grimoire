@@ -1,0 +1,298 @@
+{
+  "scopeName": "source.grimoire",
+  "name": "Grimoire",
+  "fileTypes": ["grim", "grimoire"],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#thematic-keywords"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#function-calls"
+    },
+    {
+      "include": "#identifiers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.grimoire",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.scroll.grimoire",
+          "begin": "\\$SCROLL\\(",
+          "end": "\\)",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.grimoire"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.grimoire"
+            }
+          },
+          "patterns": [
+            {
+              "name": "constant.character.escape.grimoire",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.integer.grimoire",
+          "match": "\\b\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.float.grimoire",
+          "match": "\\b\\d+\\.\\d+\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.conditional.grimoire",
+          "match": "\\b(should|lest|if|else|when|otherwise)\\b"
+        },
+        {
+          "name": "keyword.control.loop.grimoire",
+          "match": "\\b(while charged|while|for each|for|repeat while)\\b"
+        },
+        {
+          "name": "keyword.control.flow.grimoire",
+          "match": "\\b(return|break spell|continue ritual|break|continue)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.grimoire",
+          "match": "\\b(and|or|not)\\b"
+        },
+        {
+          "name": "keyword.other.grimoire",
+          "match": "\\b(upon|in|arcana|essence|familiar|plane|portal|shift|effect|command|inquire|dismiss|banish|transmute)\\b"
+        }
+      ]
+    },
+    "thematic-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.function.light.grimoire",
+          "match": "\\b(blessing|prayer|invocation)\\b"
+        },
+        {
+          "name": "keyword.declaration.function.shadow.grimoire",
+          "match": "\\b(curse|incantation|dark_ritual)\\b"
+        },
+        {
+          "name": "keyword.declaration.function.arcane.grimoire",
+          "match": "\\b(formula|theorem|algorithm)\\b"
+        },
+        {
+          "name": "keyword.declaration.function.nature.grimoire",
+          "match": "\\b(song|growth|cycle)\\b"
+        },
+        {
+          "name": "keyword.declaration.function.divine.grimoire",
+          "match": "\\b(miracle|commandment|decree)\\b"
+        },
+        {
+          "name": "keyword.declaration.function.trickster.grimoire",
+          "match": "\\b(prank|trick|jest)\\b"
+        },
+        {
+          "name": "keyword.declaration.function.neutral.grimoire",
+          "match": "\\b(ritual|spell|procedure)\\b"
+        },
+        {
+          "name": "keyword.declaration.class.light.grimoire",
+          "match": "\\b(relic|sacred object|holy vessel)\\b"
+        },
+        {
+          "name": "keyword.declaration.class.shadow.grimoire",
+          "match": "\\b(cursed item|dark relic|forbidden tome)\\b"
+        },
+        {
+          "name": "keyword.declaration.class.arcane.grimoire",
+          "match": "\\b(construct|schema|pattern)\\b"
+        },
+        {
+          "name": "keyword.declaration.class.nature.grimoire",
+          "match": "\\b(creature|being|spirit)\\b"
+        },
+        {
+          "name": "keyword.declaration.class.divine.grimoire",
+          "match": "\\b(creation|vessel|avatar)\\b"
+        },
+        {
+          "name": "keyword.declaration.class.trickster.grimoire",
+          "match": "\\b(disguise|illusion|form)\\b"
+        },
+        {
+          "name": "keyword.declaration.class.neutral.grimoire",
+          "match": "\\b(artifact|class|blueprint)\\b"
+        },
+        {
+          "name": "keyword.assignment.light.grimoire",
+          "match": "\\b(bless|consecrate|sanctify)\\b"
+        },
+        {
+          "name": "keyword.assignment.shadow.grimoire",
+          "match": "\\b(hex|doom)\\b"
+        },
+        {
+          "name": "keyword.assignment.arcane.grimoire",
+          "match": "\\b(inscribe|encode|cipher)\\b"
+        },
+        {
+          "name": "keyword.assignment.nature.grimoire",
+          "match": "\\b(grow|cultivate|nurture)\\b"
+        },
+        {
+          "name": "keyword.assignment.divine.grimoire",
+          "match": "\\b(ordain|decree|proclaim)\\b"
+        },
+        {
+          "name": "keyword.assignment.trickster.grimoire",
+          "match": "\\b(trick|swap|transform)\\b"
+        },
+        {
+          "name": "keyword.assignment.neutral.grimoire",
+          "match": "\\b(bind|set|assign)\\b"
+        },
+        {
+          "name": "keyword.output.light.grimoire",
+          "match": "\\b(illuminate|reveal|enlighten)\\b"
+        },
+        {
+          "name": "keyword.output.shadow.grimoire",
+          "match": "\\b(whisper|manifest|materialize)\\b"
+        },
+        {
+          "name": "keyword.output.arcane.grimoire",
+          "match": "\\b(divine|calculate|compute)\\b"
+        },
+        {
+          "name": "keyword.output.nature.grimoire",
+          "match": "\\b(sing|echo|resonate)\\b"
+        },
+        {
+          "name": "keyword.output.divine.grimoire",
+          "match": "\\b(prophesy|herald)\\b"
+        },
+        {
+          "name": "keyword.output.trickster.grimoire",
+          "match": "\\b(announce|jest|mock)\\b"
+        },
+        {
+          "name": "keyword.output.neutral.grimoire",
+          "match": "\\b(scry|display|show)\\b"
+        },
+        {
+          "name": "keyword.creation.light.grimoire",
+          "match": "\\b(summon|call forth)\\b"
+        },
+        {
+          "name": "keyword.creation.shadow.grimoire",
+          "match": "\\b(raise|spawn|birth)\\b"
+        },
+        {
+          "name": "keyword.creation.arcane.grimoire",
+          "match": "\\b(instantiate|compile)\\b"
+        },
+        {
+          "name": "keyword.creation.nature.grimoire",
+          "match": "\\b(sprout|bloom|emerge)\\b"
+        },
+        {
+          "name": "keyword.creation.divine.grimoire",
+          "match": "\\b(create|forge|craft)\\b"
+        },
+        {
+          "name": "keyword.creation.trickster.grimoire",
+          "match": "\\b(poof|surprise)\\b"
+        },
+        {
+          "name": "keyword.creation.neutral.grimoire",
+          "match": "\\b(conjure|make)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arithmetic.magical.grimoire",
+          "match": "\\b(added to|subtracted from|multiplied by|divided by|strengthen by|diminish by|empower by|weaken by|grow by|wither by|amplify by|decrement by)\\b"
+        },
+        {
+          "name": "keyword.operator.comparison.magical.grimoire",
+          "match": "\\b(is greater than|is lesser than|is equal to|is not equal to|is not greater than|is not lesser than)\\b"
+        },
+        {
+          "name": "keyword.operator.assignment.grimoire",
+          "match": "\\b(is now)\\b"
+        },
+        {
+          "name": "keyword.operator.arithmetic.grimoire",
+          "match": "[+\\-*/%]|\\*\\*"
+        },
+        {
+          "name": "keyword.operator.comparison.grimoire",
+          "match": "[<>=!]=?|[<>]"
+        },
+        {
+          "name": "keyword.operator.assignment.grimoire",
+          "match": "="
+        }
+      ]
+    },
+    "function-calls": {
+      "patterns": [
+        {
+          "name": "meta.function-call.grimoire",
+          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s+(upon)\\b",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.grimoire"
+            },
+            "2": {
+              "name": "keyword.control.call.grimoire"
+            }
+          }
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.grimoire",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}

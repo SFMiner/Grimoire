@@ -1,0 +1,12 @@
+# Test basic functionality
+scry $SCROLL(Hello from Grimoire!)
+
+# Test thematic keywords
+blessing test():
+    bless health = 100
+    should health is greater than 50:
+        illuminate $SCROLL(✨ Good health!)
+    lest:
+        reveal $SCROLL(❌ Low health!)
+
+test upon
