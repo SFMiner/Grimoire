@@ -21,7 +21,7 @@ pip install grimoire-lang
 Or clone and install from source:
 
 ```bash
-git clone https://github.com/grimoire-lang/grimoire
+git clone https://github.com/SFMiner/Grimoire.git
 cd grimoire
 pip install -e .
 ```
