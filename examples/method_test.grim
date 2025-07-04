@@ -1,0 +1,12 @@
+# Method call test
+scry $SCROLL(=== Method Call Test ===)
+
+# Test basic summon
+bind entity_familiar = summon upon $SCROLL(Entity), $SCROLL(test_entity)
+scry $SCROLL(Familiar created)
+
+# Test property access
+bind familiar_name = entity_familiar.name
+scry $SCROLL(Familiar name: ) added to familiar_name
+
+scry $SCROLL(=== Test Complete ===)

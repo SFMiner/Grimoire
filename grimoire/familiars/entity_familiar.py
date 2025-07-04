@@ -55,7 +55,8 @@ class EntityFamiliar(GrimoireFamiliar):
         
         # Set familiar type and validate capabilities
         self.familiar_type = FamiliarType.ENTITY
-        self.capabilities = {
+        # Note: capabilities should be a dict for the base class, but we track our type capabilities separately
+        self.capability_types = {
             FamiliarCapability.PROPERTY_MANAGEMENT,
             FamiliarCapability.SOCKET_MANAGEMENT,
             FamiliarCapability.STATE_PERSISTENCE
@@ -63,7 +64,7 @@ class EntityFamiliar(GrimoireFamiliar):
         
         # Validate we have required capabilities
         spec = get_familiar_spec(self.familiar_type)
-        missing = spec.required_capabilities - self.capabilities
+        missing = spec.required_capabilities - self.capability_types
         if missing:
             raise FamiliarCapabilityError(f"EntityFamiliar missing required capabilities: {missing}")
         
@@ -309,7 +310,7 @@ class EntityFamiliar(GrimoireFamiliar):
                 }
                 for update in self.property_history
             ],
-            "capabilities": [cap.name for cap in self.capabilities],
+            "capabilities": [cap.name for cap in self.capability_types],
             "creation_time": getattr(self, 'creation_time', time.time())
         }
     

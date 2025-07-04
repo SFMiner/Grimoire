@@ -114,7 +114,8 @@ class AIFamiliar(GrimoireFamiliar):
         
         # Set familiar type and validate capabilities
         self.familiar_type = FamiliarType.AI
-        self.capabilities = {
+        # Note: capabilities should be a dict for the base class, but we track our type capabilities separately
+        self.capability_types = {
             FamiliarCapability.GOAL_EVALUATION,
             FamiliarCapability.DECISION_MAKING,
             FamiliarCapability.SOCKET_MANAGEMENT,
@@ -123,7 +124,7 @@ class AIFamiliar(GrimoireFamiliar):
         
         # Validate we have required capabilities
         spec = get_familiar_spec(self.familiar_type)
-        missing = spec.required_capabilities - self.capabilities
+        missing = spec.required_capabilities - self.capability_types
         if missing:
             raise FamiliarCapabilityError(f"AIFamiliar missing required capabilities: {missing}")
         
