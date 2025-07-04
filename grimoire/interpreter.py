@@ -784,7 +784,7 @@ class GrimoireSpirit(GoalSeeker):
                 "correction_authority": ["state", "behavior"]
             }
     
-    def spawn_familiar(self, familiar_type: str, objectives: List[str]) -> GrimoireFamiliar:
+    def spawn_familiar(self, familiar_type: str, objectives: List[str]) -> 'GrimoireFamiliar':
         """Create and manage a new familiar without pact."""
         capabilities = FAMILIAR_TYPES.get(familiar_type, lambda: {})()
         familiar = GrimoireFamiliar(f"{self.name}_{familiar_type}_{len(self.familiars)}", familiar_type, capabilities)

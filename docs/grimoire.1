@@ -1,0 +1,473 @@
+.TH GRIMOIRE 1 "2024-01-01" "Grimoire 1.0.0" "User Commands"
+
+.SH NAME
+grimoire \- A magical programming language for game development
+
+.SH SYNOPSIS
+.B grimoire
+.RB [ \-h | \-\-help ]
+.RB [ \-v | \-\-version ]
+.RB [ \-i | \-\-interactive ]
+.RB [ \-\-debug ]
+.RI [ FILE ]
+
+.SH DESCRIPTION
+.B Grimoire
+is a magical programming language designed for game development with hierarchical autonomous agents, immutable pacts, and emergent AI behaviors. It features a three-tier agent system (Archons, Spirits, Familiars), an immutable pact system for secure contracts, and a comprehensive monitoring system called the Familiar Wrangler.
+
+The language uses thematic terminology to make programming more immersive and intuitive for game developers. Functions are called "rituals", output is "scrying", and variables are "bound" rather than assigned.
+
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Show help message and exit.
+
+.TP
+.BR \-v ", " \-\-version
+Show version information and exit.
+
+.TP
+.BR \-i ", " \-\-interactive
+Start the interactive REPL (Read-Eval-Print Loop) mode.
+
+.TP
+.BR \-\-debug
+Enable debug mode with verbose output.
+
+.TP
+.I FILE
+Grimoire source file to execute (.grim extension recommended).
+
+.SH LANGUAGE FEATURES
+
+.SS Core Syntax
+Grimoire uses Python-like indentation and magical terminology:
+
+.RS
+.B Variables:
+.br
+bind x = 42
+.br
+bind name = "Wizard"
+
+.B Functions (Rituals):
+.br
+ritual greet(name):
+.br
+    scry $SCROLL("Hello, " + name + "!")
+
+.B Control Flow:
+.br
+if condition:
+.br
+    # code block
+.br
+elif other_condition:
+.br
+    # code block
+.br
+else:
+.br
+    # code block
+
+.B Loops:
+.br
+for item in collection:
+.br
+    # code block
+.br
+while condition:
+.br
+    # code block
+.RE
+
+.SS Scrying System (Output)
+Grimoire provides thematic output variants:
+
+.RS
+.B $SCROLL(text)
+- Standard text output
+.br
+.B $CRYSTAL(data)
+- Structured data display
+.br
+.B $FLAME(message)
+- Urgent/important messages
+.br
+.B $MIRROR(reflection)
+- Debug/reflection output
+.br
+.B $RUNE(symbol)
+- Symbolic/magical output
+.RE
+
+.SS Hierarchical Agent System
+The core innovation of Grimoire is its three-tier autonomous agent architecture:
+
+.RS
+.B Archons (Strategic Level)
+- High-level AI managing multiple spirits
+- Domain-specific strategic goals
+- Resource allocation across domains
+- Domains: Combat, Economy, Diplomacy, Exploration, Defense
+
+.B Spirits (Tactical Level)
+- Mid-level AI managing multiple familiars
+- Short-term tactical objectives
+- Pact creation and management
+- Domain authority enforcement
+
+.B Familiars (Operational Level)
+- Low-level AI for direct entity management
+- Reactive and proactive behaviors
+- Activity logging and reporting
+- Pact execution and compliance
+.RE
+
+.SS Immutable Pact System
+Pacts are secure, immutable agreements between spirits and familiars:
+
+.RS
+- Immutable after creation
+- Black-box security model
+- True name authentication
+- Spirit-controlled creation and revocation
+- Initialization-only binding
+.RE
+
+.SS Familiar Wrangler
+Centralized monitoring system for all agents:
+
+.RS
+- Activity logging and categorization
+- Selective reporting by activity type
+- Performance statistics
+- Cross-agent communication tracking
+- Real-time system status
+.RE
+
+.SH BUILT-IN FUNCTIONS
+
+.SS Agent Creation
+.TP
+.B create_archon(name, domain, goals)
+Create a strategic-level archon with specified domain and goals.
+
+.TP
+.B create_spirit(name, domain, goals)
+Create a tactical-level spirit with domain authority.
+
+.TP
+.B summon(name, pacts)
+Create a familiar with specified pacts.
+
+.TP
+.B create_familiar_with_pact(name, pact_terms)
+Create a familiar with a single pact binding.
+
+.SS Pact Management
+.TP
+.B invoke_pact(familiar_name, pact_name)
+Invoke a specific pact behavior on a familiar.
+
+.TP
+.B revoke_pact(familiar_name, pact_name)
+Revoke a pact (destroys the familiar).
+
+.TP
+.B get_pact_summary()
+Get comprehensive information about all active pacts.
+
+.SS Monitoring & Debugging
+.TP
+.B enable_reporting(familiar_name, types)
+Enable activity reporting for specified types.
+
+.TP
+.B disable_reporting(familiar_name)
+Disable activity reporting for a familiar.
+
+.TP
+.B get_wrangler_report()
+Get comprehensive system status from the Familiar Wrangler.
+
+.TP
+.B get_familiar_stats(familiar_name)
+Get detailed statistics for a specific familiar.
+
+.SS System Management
+.TP
+.B autonomous_update(agent_name)
+Trigger autonomous update cycle for an agent.
+
+.TP
+.B oversee_domain(spirit_name, domain)
+Check domain authority and resolve conflicts.
+
+.TP
+.B true_name(entity)
+Get the cryptographic true name of an entity.
+
+.SH INTERACTIVE MODE
+The interactive REPL provides extensive debugging and exploration capabilities:
+
+.SS Basic Commands
+.TP
+.B help()
+Show general help information.
+
+.TP
+.B help('topic')
+Show help for a specific topic.
+
+.TP
+.B exit, quit, q
+Exit the REPL.
+
+.TP
+.B clear
+Clear the screen.
+
+.TP
+.B version
+Show version information.
+
+.SS Debugging Commands
+.TP
+.B debug on/off
+Toggle debug mode.
+
+.TP
+.B show_tokens
+Show lexer tokens for the next input.
+
+.TP
+.B show_ast
+Show parser AST for the next input.
+
+.SS Agent Monitoring
+.TP
+.B agents()
+List all active agents.
+
+.TP
+.B familiars()
+List all active familiars.
+
+.TP
+.B wrangler()
+Show Familiar Wrangler status.
+
+.SH EXAMPLES
+
+.SS Hello World
+.nf
+scry $SCROLL("Hello, magical world!")
+.fi
+
+.SS Simple Function
+.nf
+ritual greet(name):
+    scry $SCROLL("Greetings, " + name + "!")
+
+greet("Wizard")
+.fi
+
+.SS Agent System
+.nf
+# Create strategic archon
+create_archon("BattleCommander", "Combat", ["defend_base"])
+
+# Create tactical spirit
+create_spirit("Guardian", "Combat", ["patrol_area"])
+
+# Create operational familiar
+create_familiar_with_pact("scout", "patrol_perimeter")
+
+# Enable monitoring
+enable_reporting("scout", ["environmental", "command"])
+
+# Check system status
+get_wrangler_report()
+.fi
+
+.SS RPG System
+.nf
+bind player_health = 100
+bind player_mana = 50
+
+ritual cast_spell(spell_name, cost):
+    if player_mana >= cost:
+        player_mana = player_mana - cost
+        scry $FLAME("✨ Cast " + spell_name + "!")
+        return true
+    else:
+        scry $SCROLL("❌ Not enough mana")
+        return false
+
+# Create healing familiar
+create_familiar_with_pact("healer", "heal_when_low_health")
+cast_spell("Healing Light", 25)
+.fi
+
+.SH FILES
+.TP
+.I *.grim
+Grimoire source files (recommended extension)
+
+.TP
+.I ~/.grimoire/
+User configuration directory
+
+.TP
+.I /usr/share/grimoire/
+System-wide Grimoire files
+
+.SH ENVIRONMENT
+.TP
+.B GRIMOIRE_PATH
+Additional directories to search for Grimoire modules
+
+.TP
+.B GRIMOIRE_DEBUG
+Enable debug mode by default if set to 1
+
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+
+.TP
+.B 1
+General error (syntax error, runtime error, etc.)
+
+.TP
+.B 2
+Command line argument error
+
+.SH HELP TOPICS
+Available help topics in interactive mode:
+
+.TP
+.B keywords
+Language syntax and constructs
+
+.TP
+.B functions
+Built-in functions and their usage
+
+.TP
+.B agents
+Hierarchical agent system documentation
+
+.TP
+.B pacts
+Immutable pact system guide
+
+.TP
+.B syntax
+Basic language syntax reference
+
+.TP
+.B examples
+Code examples and patterns
+
+.TP
+.B debugging
+Debugging guide and techniques
+
+.TP
+.B quickstart
+Getting started guide
+
+.TP
+.B advanced
+Advanced features and patterns
+
+.SH DIAGNOSTICS
+Common error types and their meanings:
+
+.TP
+.B Syntax Error
+Invalid language syntax, check indentation and keywords
+
+.TP
+.B Undefined Variable
+Variable used before binding, check bind statements
+
+.TP
+.B Pact Violation
+Familiar attempted unauthorized action, check pact terms
+
+.TP
+.B Domain Conflict
+Multiple agents claiming same domain authority
+
+.TP
+.B Agent Not Found
+Reference to non-existent agent, check agent creation
+
+.SH SECURITY
+Grimoire implements several security features:
+
+.TP
+.B True Name Authentication
+Cryptographic entity identification using SHA256 hashes
+
+.TP
+.B Domain Authority
+Hierarchical permission system preventing unauthorized actions
+
+.TP
+.B Immutable Pacts
+Contracts that cannot be modified after creation
+
+.TP
+.B Sandboxed Execution
+Familiars operate within controlled environments
+
+.SH PERFORMANCE
+Tips for optimal performance:
+
+.TP
+.B Agent Hierarchy
+Balance the number of agents per level to avoid overhead
+
+.TP
+.B Reporting
+Limit activity reporting to necessary categories
+
+.TP
+.B Pact Efficiency
+Design pacts with clear, specific terms
+
+.TP
+.B Resource Management
+Monitor resource allocation through archons
+
+.SH BUGS
+Report bugs to the Grimoire project repository:
+.br
+https://github.com/grimoire-lang/grimoire/issues
+
+.SH AUTHOR
+Created by the Grimoire development team for game developers who believe in the magic of code.
+
+.SH COPYRIGHT
+Copyright (c) 2024 Grimoire Contributors.
+.br
+Licensed under the MIT License.
+
+.SH SEE ALSO
+.BR python (1),
+.BR lua (1),
+.BR ruby (1)
+
+Online documentation: https://grimoire-lang.github.io/
+.br
+Project repository: https://github.com/grimoire-lang/grimoire
+
+.SH PHILOSOPHY
+"Any sufficiently advanced technology is indistinguishable from magic." - Arthur C. Clarke
+.br
+"Any sufficiently magical code is indistinguishable from advanced technology." - Grimoire Philosophy
