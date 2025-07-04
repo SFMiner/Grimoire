@@ -2,22 +2,21 @@
 """
 Grimoire Programming Language Interpreter
 
-This module implements a tree-walking interpreter for the Grimoire programming language,
-executing the Abstract Syntax Tree (AST) directly.
+This module implements a tree-walking interpreter for the Grimoire programming language.
 """
 
-from typing import Any, Dict, List, Optional, Callable
-from dataclasses import dataclass
 import sys
-
+from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from .lexer import TokenType
 from .parser import (
-    ASTNode, Expression, Statement, Program,
+    Program, Statement, Expression, ASTNode,
     LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression,
     CallExpression, PropertyAccessExpression, ConjureExpression, PortalExpression,
-    PropertyAssignmentExpression,
-    ExpressionStatement, BindStatement, ScryStatement, IfStatement, WhileStatement,
-    ForStatement, BlockStatement, ReturnStatement, BreakStatement, ContinueStatement,
+    PropertyAssignmentExpression, ExpressionStatement, BindStatement, ScryStatement,
+    IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
+    BreakStatement, ContinueStatement,
     RitualStatement, ArtifactStatement, FamiliarStatement, PlaneStatement,
     EffectStatement, CommandStatement
 )
@@ -98,6 +97,221 @@ class GrimoireInstance:
         self.fields[name] = value
 
 
+# =============================================================================
+# Familiar System
+# =============================================================================
+
+class FamiliarCapability(ABC):
+    """Base class for familiar capabilities."""
+    
+    @abstractmethod
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        """Execute a command with given arguments."""
+        pass
+    
+    @abstractmethod
+    def inquire(self, query: str) -> Any:
+        """Handle an inquiry about the familiar's state."""
+        pass
+
+
+class MemoryImpCapability(FamiliarCapability):
+    """Memory management familiar capability."""
+    
+    def __init__(self):
+        self.allocated_memory = 0
+        self.max_memory = 1024 * 1024  # 1MB default
+    
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        if command == "allocate":
+            if len(arguments) != 1:
+                raise RuntimeError("allocate expects 1 argument (bytes)")
+            bytes_to_allocate = arguments[0]
+            if self.allocated_memory + bytes_to_allocate > self.max_memory:
+                raise RuntimeError("Not enough memory available")
+            self.allocated_memory += bytes_to_allocate
+            return f"Allocated {bytes_to_allocate} bytes"
+        elif command == "deallocate":
+            if len(arguments) != 1:
+                raise RuntimeError("deallocate expects 1 argument (bytes)")
+            bytes_to_free = arguments[0]
+            self.allocated_memory = max(0, self.allocated_memory - bytes_to_free)
+            return f"Deallocated {bytes_to_free} bytes"
+        else:
+            raise RuntimeError(f"Unknown memory command: {command}")
+    
+    def inquire(self, query: str) -> Any:
+        if query == "free_space":
+            return self.max_memory - self.allocated_memory
+        elif query == "used_space":
+            return self.allocated_memory
+        elif query == "total_space":
+            return self.max_memory
+        else:
+            raise RuntimeError(f"Unknown memory query: {query}")
+
+
+class FileSpriteCapability(FamiliarCapability):
+    """File system operations familiar capability."""
+    
+    def __init__(self):
+        self.open_files = {}
+    
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        if command == "read":
+            if len(arguments) != 1:
+                raise RuntimeError("read expects 1 argument (filename)")
+            filename = arguments[0]
+            try:
+                with open(filename, 'r') as f:
+                    return f.read()
+            except Exception as e:
+                raise RuntimeError(f"Failed to read file: {e}")
+        elif command == "write":
+            if len(arguments) != 2:
+                raise RuntimeError("write expects 2 arguments (filename, content)")
+            filename, content = arguments
+            try:
+                with open(filename, 'w') as f:
+                    f.write(str(content))
+                return f"Wrote to {filename}"
+            except Exception as e:
+                raise RuntimeError(f"Failed to write file: {e}")
+        elif command == "append":
+            if len(arguments) != 2:
+                raise RuntimeError("append expects 2 arguments (filename, content)")
+            filename, content = arguments
+            try:
+                with open(filename, 'a') as f:
+                    f.write(str(content))
+                return f"Appended to {filename}"
+            except Exception as e:
+                raise RuntimeError(f"Failed to append to file: {e}")
+        else:
+            raise RuntimeError(f"Unknown file command: {command}")
+    
+    def inquire(self, query: str) -> Any:
+        if query == "open_files":
+            return list(self.open_files.keys())
+        else:
+            raise RuntimeError(f"Unknown file query: {query}")
+
+
+class LogScribeCapability(FamiliarCapability):
+    """Logging and tracing familiar capability."""
+    
+    def __init__(self):
+        self.log_entries = []
+        self.log_level = "INFO"
+    
+    def execute(self, command: str, arguments: List[Any]) -> Any:
+        if command == "log":
+            if len(arguments) < 1:
+                raise RuntimeError("log expects at least 1 argument (message)")
+            message = arguments[0]
+            level = arguments[1] if len(arguments) > 1 else "INFO"
+            self.log_entries.append(f"[{level}] {message}")
+            return f"Logged: {message}"
+        elif command == "clear":
+            self.log_entries.clear()
+            return "Log cleared"
+        elif command == "set_level":
+            if len(arguments) != 1:
+                raise RuntimeError("set_level expects 1 argument (level)")
+            self.log_level = arguments[0]
+            return f"Log level set to {self.log_level}"
+        else:
+            raise RuntimeError(f"Unknown log command: {command}")
+    
+    def inquire(self, query: str) -> Any:
+        if query == "entries":
+            return self.log_entries.copy()
+        elif query == "level":
+            return self.log_level
+        elif query == "count":
+            return len(self.log_entries)
+        else:
+            raise RuntimeError(f"Unknown log query: {query}")
+
+
+class GrimoireFamiliar:
+    """Represents a runtime familiar - a semi-autonomous agent."""
+    
+    def __init__(self, name: str, familiar_type: str, capabilities: Dict[str, FamiliarCapability]):
+        self.name = name
+        self.familiar_type = familiar_type
+        self.capabilities = capabilities
+        self.charge = None  # The entity this familiar manages
+        self.state = "active"  # active, inactive, dismissed
+        self.properties = {}
+    
+    def command(self, command: str, arguments: List[Any]) -> Any:
+        """Execute a command on this familiar."""
+        if self.state != "active":
+            raise RuntimeError(f"Familiar {self.name} is not active")
+        
+        # Handle built-in commands
+        if command == "activate":
+            self.state = "active"
+            return f"Familiar {self.name} activated"
+        elif command == "deactivate":
+            self.state = "inactive"
+            return f"Familiar {self.name} deactivated"
+        elif command == "set_charge":
+            if len(arguments) != 1:
+                raise RuntimeError("set_charge expects 1 argument (entity)")
+            self.charge = arguments[0]
+            return f"Familiar {self.name} now manages {self.charge}"
+        
+        # Look for capability that can handle this command
+        for capability in self.capabilities.values():
+            try:
+                return capability.execute(command, arguments)
+            except RuntimeError:
+                continue
+        
+        raise RuntimeError(f"Unknown command '{command}' for familiar {self.name}")
+    
+    def inquire(self, query: str) -> Any:
+        """Handle an inquiry about the familiar's state."""
+        if self.state != "active":
+            raise RuntimeError(f"Familiar {self.name} is not active")
+        
+        # Handle built-in queries
+        if query == "state":
+            return self.state
+        elif query == "type":
+            return self.familiar_type
+        elif query == "charge":
+            return self.charge
+        elif query == "capabilities":
+            return list(self.capabilities.keys())
+        
+        # Look for capability that can handle this query
+        for capability in self.capabilities.values():
+            try:
+                return capability.inquire(query)
+            except RuntimeError:
+                continue
+        
+        raise RuntimeError(f"Unknown query '{query}' for familiar {self.name}")
+    
+    def dismiss(self) -> str:
+        """Dismiss this familiar."""
+        self.state = "dismissed"
+        return f"Familiar {self.name} dismissed"
+
+
+# Built-in familiar types
+FAMILIAR_TYPES = {
+    "MemoryImp": lambda: {"memory": MemoryImpCapability()},
+    "FileSprite": lambda: {"file": FileSpriteCapability()},
+    "LogScribe": lambda: {"log": LogScribeCapability()},
+    "TimeKeeper": lambda: {},  # TODO: Implement time-based capabilities
+    "ErrorBanshee": lambda: {},  # TODO: Implement error handling capabilities
+}
+
+
 @dataclass
 class BoundMethod:
     """Represents a method bound to an instance."""
@@ -174,6 +388,7 @@ class GrimoireInterpreter:
     def __init__(self):
         self.globals = Environment()
         self.environment = self.globals
+        self.familiars = {}  # Active familiars
         
         # Define built-in functions
         self._define_builtins()
@@ -187,7 +402,23 @@ class GrimoireInterpreter:
             print(self._grimoire_to_string(arguments[0]))
             return None
         
+        # Built-in summon function for creating familiars
+        def summon_builtin(interpreter, arguments):
+            if len(arguments) < 1:
+                raise RuntimeError("summon expects at least 1 argument (familiar type)")
+            familiar_type = arguments[0]
+            familiar_name = arguments[1] if len(arguments) > 1 else f"{familiar_type.lower()}_familiar"
+            
+            if familiar_type not in FAMILIAR_TYPES:
+                raise RuntimeError(f"Unknown familiar type: {familiar_type}")
+            
+            capabilities = FAMILIAR_TYPES[familiar_type]()
+            familiar = GrimoireFamiliar(familiar_name, familiar_type, capabilities)
+            self.familiars[familiar_name] = familiar
+            return familiar
+        
         self.globals.define("scry", scry_builtin)
+        self.globals.define("summon", summon_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
@@ -203,6 +434,8 @@ class GrimoireInterpreter:
             return f"<artifact {value.name}>"
         elif isinstance(value, GrimoireFunction):
             return f"<ritual {value.name}>"
+        elif isinstance(value, GrimoireFamiliar):
+            return f"<familiar {value.name} ({value.familiar_type})>"
         else:
             return str(value)
     
@@ -296,12 +529,7 @@ class GrimoireInterpreter:
             self.environment.define(statement.name, artifact)
         
         elif isinstance(statement, FamiliarStatement):
-            # For now, treat familiars like artifacts
-            # TODO: Implement familiar-specific behavior
-            superclass = None
-            if statement.superclass:
-                superclass = self.environment.get(statement.superclass)
-            
+            # Handle familiar definitions - create a familiar type
             methods = {}
             for method in statement.methods:
                 methods[method.name] = GrimoireFunction(
@@ -311,8 +539,24 @@ class GrimoireInterpreter:
                     self.environment
                 )
             
-            familiar = GrimoireClass(statement.name, superclass, methods)
-            self.environment.define(statement.name, familiar)
+            # For now, treat custom familiar definitions as creating a new familiar type
+            # This is a simplified approach - in a full implementation, you'd want
+            # to create a proper familiar class system
+            familiar_class = GrimoireClass(statement.name, None, methods)
+            self.environment.define(statement.name, familiar_class)
+        
+        elif isinstance(statement, CommandStatement):
+            # Handle familiar commands
+            familiar_expr = self.evaluate(statement.familiar)
+            
+            if isinstance(familiar_expr, GrimoireFamiliar):
+                arguments = [self.evaluate(arg) for arg in statement.arguments]
+                result = familiar_expr.command(statement.command, arguments)
+                # Command results are usually printed or stored somewhere
+                if result is not None:
+                    print(self._grimoire_to_string(result))
+            else:
+                raise RuntimeError(f"Can only command familiars, not {type(familiar_expr)}")
         
         else:
             raise RuntimeError(f"Unknown statement type: {type(statement)}")
@@ -413,8 +657,11 @@ class GrimoireInterpreter:
             
             if isinstance(obj, GrimoireInstance):
                 return obj.get(expression.property)
+            elif isinstance(obj, GrimoireFamiliar):
+                # Handle familiar property access for inquiries
+                return obj.inquire(expression.property)
             else:
-                raise RuntimeError("Only instances have properties")
+                raise RuntimeError("Only instances and familiars have properties")
         
         elif isinstance(expression, ConjureExpression):
             artifact_class = self.environment.get(expression.artifact_type)
@@ -504,10 +751,10 @@ if __name__ == "__main__":
             scry $SCROLL(A wizard named ) added to wizard_name added to $SCROLL( appears!)
         
         ritual cast_spell():
-            if enchanted self.mana is greater than 10:
+            should self.mana is greater than 10:
                 diminish self.mana by 10
                 scry $SCROLL(Spell cast! Remaining mana: ) added to self.mana
-            else cursed:
+            lest:
                 scry $SCROLL(Not enough mana!)
     
     greet upon $SCROLL(World)
