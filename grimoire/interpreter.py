@@ -419,6 +419,96 @@ class FamiliarWrangler:
 
 
 # =============================================================================
+# Pact System: Spiritual Agreements and Domain Authority
+# =============================================================================
+
+@dataclass
+class Pact:
+    """Represents a binding agreement between a spirit and familiar."""
+    spirit_name: str
+    familiar_true_name: str
+    pact_terms: List[str]  # Actions/permissions granted
+    domain: str
+    creation_timestamp: float
+    conditions: Dict[str, Any]  # Additional pact conditions
+    
+    def is_action_permitted(self, action: str) -> bool:
+        """Check if an action is permitted under this pact."""
+        return action in self.pact_terms or "all_actions" in self.pact_terms
+    
+    def violates_conditions(self, familiar_state: Dict[str, Any]) -> bool:
+        """Check if familiar state violates pact conditions."""
+        for condition, expected_value in self.conditions.items():
+            if condition in familiar_state:
+                if familiar_state[condition] != expected_value:
+                    return True
+        return False
+
+
+class PactRegistry:
+    """Global registry of all active pacts in the system."""
+    
+    def __init__(self):
+        self.active_pacts: Dict[str, Pact] = {}  # familiar_true_name -> pact
+        self.spirit_pacts: Dict[str, List[str]] = {}  # spirit_name -> [familiar_names]
+    
+    def register_pact(self, pact: Pact) -> str:
+        """Register a new pact in the system."""
+        self.active_pacts[pact.familiar_true_name] = pact
+        
+        if pact.spirit_name not in self.spirit_pacts:
+            self.spirit_pacts[pact.spirit_name] = []
+        self.spirit_pacts[pact.spirit_name].append(pact.familiar_true_name)
+        
+        return f"Pact registered between {pact.spirit_name} and {pact.familiar_true_name}"
+    
+    def revoke_pact(self, spirit_name: str, familiar_true_name: str) -> str:
+        """Revoke a pact from the registry."""
+        if familiar_true_name in self.active_pacts:
+            pact = self.active_pacts[familiar_true_name]
+            if pact.spirit_name == spirit_name:
+                del self.active_pacts[familiar_true_name]
+                if spirit_name in self.spirit_pacts:
+                    self.spirit_pacts[spirit_name].remove(familiar_true_name)
+                return f"Pact revoked between {spirit_name} and {familiar_true_name}"
+            else:
+                raise RuntimeError(f"Only spirit {pact.spirit_name} can revoke this pact")
+        return f"No pact found for {familiar_true_name}"
+    
+    def get_pact(self, familiar_true_name: str) -> Optional[Pact]:
+        """Get the pact for a familiar."""
+        return self.active_pacts.get(familiar_true_name)
+    
+    def get_spirit_pacts(self, spirit_name: str) -> List[Pact]:
+        """Get all pacts managed by a spirit."""
+        if spirit_name not in self.spirit_pacts:
+            return []
+        return [self.active_pacts[familiar_name] for familiar_name in self.spirit_pacts[spirit_name]]
+    
+    def is_action_permitted(self, spirit_name: str, familiar_true_name: str, action: str) -> bool:
+        """Check if a spirit can perform an action on a familiar under their pact."""
+        pact = self.get_pact(familiar_true_name)
+        if not pact or pact.spirit_name != spirit_name:
+            return False
+        return pact.is_action_permitted(action)
+
+
+class ForbiddenActionError(Exception):
+    """Raised when a spirit attempts an action not permitted by pact."""
+    pass
+
+
+class NoPactError(Exception):
+    """Raised when trying to invoke a pact that doesn't exist."""
+    pass
+
+
+class DomainViolationError(Exception):
+    """Raised when a familiar violates its spirit's domain rules."""
+    pass
+
+
+# =============================================================================
 # Hierarchical Agent System: Goals, Archons, Spirits
 # =============================================================================
 
@@ -621,19 +711,26 @@ class GrimoireArchon(GoalSeeker):
 class GrimoireSpirit(GoalSeeker):
     """Tactical-level AI agent that manages multiple familiars."""
     
-    def __init__(self, name: str, spirit_type: str):
+    def __init__(self, name: str, spirit_type: str, domain: str = "general"):
         super().__init__()
         self.name = name
         self.spirit_type = spirit_type
+        self.domain = domain  # Spirit's domain of authority
         self.archon_ref: Optional[GrimoireArchon] = None
         self.familiars: List['GrimoireFamiliar'] = []
         self.resource_allocation = 0
         self.cooperation_network: List['GrimoireSpirit'] = []
         self.methods: Dict[str, GrimoireFunction] = {}
         self.state = "active"
+        self.pact_registry_ref: Optional[PactRegistry] = None
         
-        # Initialize type-specific behaviors
+        # Pact management
+        self.pacts: Dict[str, Pact] = {}  # familiar_true_name -> pact
+        self.domain_rules: Dict[str, Any] = {}
+        
+        # Initialize type-specific behaviors and domain rules
         self.initialize_tactical_behaviors()
+        self.initialize_domain_rules()
     
     def initialize_tactical_behaviors(self):
         """Initialize behaviors based on spirit type."""
@@ -654,14 +751,169 @@ class GrimoireSpirit(GoalSeeker):
             self.add_goal("objective_completion", 8, 0.8, 0.6)
             self.add_goal("familiar_coordination", 6, 0.6, 0.5)
     
+    def initialize_domain_rules(self):
+        """Initialize domain-specific rules and authorities."""
+        if self.domain == "reality":
+            self.domain_rules = {
+                "enforce_physics": True,
+                "monitor_anomalies": True,
+                "correction_authority": ["position", "velocity", "state"]
+            }
+        elif self.domain == "security":
+            self.domain_rules = {
+                "access_control": True,
+                "threat_detection": True,
+                "correction_authority": ["permissions", "access_level", "security_state"]
+            }
+        elif self.domain == "resources":
+            self.domain_rules = {
+                "allocation_control": True,
+                "efficiency_monitoring": True,
+                "correction_authority": ["resource_usage", "allocation", "efficiency"]
+            }
+        elif self.domain == "communication":
+            self.domain_rules = {
+                "message_routing": True,
+                "protocol_enforcement": True,
+                "correction_authority": ["message_format", "routing", "protocol"]
+            }
+        else:
+            # General domain
+            self.domain_rules = {
+                "general_oversight": True,
+                "correction_authority": ["state", "behavior"]
+            }
+    
     def spawn_familiar(self, familiar_type: str, objectives: List[str]) -> GrimoireFamiliar:
-        """Create and manage a new familiar."""
+        """Create and manage a new familiar without pact."""
         capabilities = FAMILIAR_TYPES.get(familiar_type, lambda: {})()
         familiar = GrimoireFamiliar(f"{self.name}_{familiar_type}_{len(self.familiars)}", familiar_type, capabilities)
         familiar.spirit_ref = self
         
         self.familiars.append(familiar)
         return familiar
+    
+    def create_familiar_with_pact(self, familiar_type: str, pact_terms: List[str], 
+                                  pact_conditions: Optional[Dict[str, Any]] = None) -> 'GrimoireFamiliar':
+        """Create a new familiar and establish a pact during initialization."""
+        capabilities = FAMILIAR_TYPES.get(familiar_type, lambda: {})()
+        familiar_name = f"{self.name}_{familiar_type}_{len(self.familiars)}"
+        
+        # Generate true name (immutable identifier)
+        import hashlib
+        true_name = hashlib.sha256(f"{familiar_name}_{self.name}_{__import__('time').time()}".encode()).hexdigest()[:16]
+        
+        familiar = GrimoireFamiliar(familiar_name, familiar_type, capabilities, true_name=true_name)
+        familiar.spirit_ref = self
+        
+        # Create pact during initialization (security requirement)
+        pact = Pact(
+            spirit_name=self.name,
+            familiar_true_name=true_name,
+            pact_terms=pact_terms,
+            domain=self.domain,
+            creation_timestamp=__import__('time').time(),
+            conditions=pact_conditions or {}
+        )
+        
+        # Register pact
+        if self.pact_registry_ref:
+            self.pact_registry_ref.register_pact(pact)
+        self.pacts[true_name] = pact
+        familiar.pact = pact
+        
+        self.familiars.append(familiar)
+        return familiar
+    
+    def revoke_pact(self, familiar_true_name: str) -> str:
+        """Revoke a pact with a familiar."""
+        if familiar_true_name in self.pacts:
+            if self.pact_registry_ref:
+                self.pact_registry_ref.revoke_pact(self.name, familiar_true_name)
+            del self.pacts[familiar_true_name]
+            
+            # Find and update the familiar
+            for familiar in self.familiars:
+                if familiar.true_name == familiar_true_name:
+                    familiar.pact = None
+                    break
+            
+            return f"Pact revoked with {familiar_true_name}"
+        return f"No pact found with {familiar_true_name}"
+    
+    def invoke_pact(self, familiar_true_name: str, action: str, *args) -> Any:
+        """Invoke a pact to perform an action on a familiar."""
+        if familiar_true_name not in self.pacts:
+            raise NoPactError(f"No pact exists with {familiar_true_name}")
+        
+        pact = self.pacts[familiar_true_name]
+        if not pact.is_action_permitted(action):
+            raise ForbiddenActionError(f"Action '{action}' not permitted under pact with {familiar_true_name}")
+        
+        # Find the familiar
+        familiar = None
+        for f in self.familiars:
+            if f.true_name == familiar_true_name:
+                familiar = f
+                break
+        
+        if not familiar:
+            raise RuntimeError(f"Familiar with true name {familiar_true_name} not found")
+        
+        # Perform the action based on pact terms
+        if action == "command":
+            return familiar.command(args[0], list(args[1:]))
+        elif action == "modify_state":
+            familiar.properties.update(args[0])
+            return f"State modified for {familiar_true_name}"
+        elif action == "relocate":
+            familiar.properties["position"] = args[0]
+            return f"Relocated {familiar_true_name}"
+        elif action == "deactivate":
+            familiar.state = "inactive"
+            return f"Deactivated {familiar_true_name}"
+        elif action == "activate":
+            familiar.state = "active"
+            return f"Activated {familiar_true_name}"
+        else:
+            # Custom action - delegate to familiar
+            return familiar.execute_pact_action(action, args)
+    
+    def oversee_domain(self):
+        """Monitor familiars in domain and correct violations."""
+        violations_corrected = 0
+        
+        for familiar in self.familiars:
+            if familiar.true_name in self.pacts:
+                pact = self.pacts[familiar.true_name]
+                familiar_state = {
+                    "state": familiar.state,
+                    "position": familiar.properties.get("position"),
+                    "behavior": familiar.properties.get("current_behavior"),
+                    **familiar.properties
+                }
+                
+                if pact.violates_conditions(familiar_state):
+                    self.correct_familiar_state(familiar, pact)
+                    violations_corrected += 1
+        
+        return f"Domain oversight complete. {violations_corrected} violations corrected."
+    
+    def correct_familiar_state(self, familiar: 'GrimoireFamiliar', pact: Pact):
+        """Correct a familiar's state to comply with pact conditions."""
+        # Apply domain-specific corrections
+        correction_authority = self.domain_rules.get("correction_authority", [])
+        
+        for condition, expected_value in pact.conditions.items():
+            if condition in correction_authority:
+                if condition in familiar.properties:
+                    familiar.properties[condition] = expected_value
+                elif condition == "state":
+                    familiar.state = expected_value
+        
+        familiar.log_activity("domain_correction", 
+                            f"State corrected by spirit {self.name}",
+                            {"domain": self.domain, "corrections": pact.conditions})
     
     def autonomous_update(self):
         """Perform autonomous tactical decision making."""
