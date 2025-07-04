@@ -238,6 +238,187 @@ class LogScribeCapability(FamiliarCapability):
 
 
 # =============================================================================
+# Activity Reporting and Monitoring System
+# =============================================================================
+
+@dataclass
+class Activity:
+    """Represents an activity performed by a familiar."""
+    timestamp: float
+    familiar_name: str
+    activity_type: str  # "self", "inter_familiar", "environmental", "command"
+    description: str
+    details: Dict[str, Any]
+    
+    def is_self(self) -> bool:
+        """Check if this is a self-activity (internal processing)."""
+        return self.activity_type == "self"
+    
+    def is_inter_familiar(self) -> bool:
+        """Check if this involves interaction with other familiars."""
+        return self.activity_type == "inter_familiar"
+    
+    def is_environmental(self) -> bool:
+        """Check if this involves environmental interaction."""
+        return self.activity_type == "environmental"
+    
+    def is_command(self) -> bool:
+        """Check if this is a command execution."""
+        return self.activity_type == "command"
+
+
+class FamiliarWrangler:
+    """Centralized manager for familiar reporting and monitoring."""
+    
+    def __init__(self):
+        self.active_familiars: List['GrimoireFamiliar'] = []
+        self.reporting_settings: Dict[str, Dict[str, Any]] = {}
+        self.global_reports: List[Activity] = []
+        self.is_active = True
+    
+    def register_familiar(self, familiar: 'GrimoireFamiliar') -> str:
+        """Register a familiar for potential monitoring."""
+        if familiar not in self.active_familiars:
+            self.active_familiars.append(familiar)
+            familiar.wrangler_ref = self
+            return f"Familiar {familiar.name} registered with wrangler"
+        return f"Familiar {familiar.name} already registered"
+    
+    def unregister_familiar(self, familiar: 'GrimoireFamiliar') -> str:
+        """Unregister a familiar from monitoring."""
+        if familiar in self.active_familiars:
+            self.active_familiars.remove(familiar)
+            familiar.wrangler_ref = None
+            familiar.disable_reporting()
+            return f"Familiar {familiar.name} unregistered from wrangler"
+        return f"Familiar {familiar.name} not found in registry"
+    
+    def enable_reporting(self, familiar: 'GrimoireFamiliar', report_type: str = "all") -> str:
+        """Enable reporting for a specific familiar."""
+        if familiar not in self.active_familiars:
+            self.register_familiar(familiar)
+        
+        familiar.enable_reporting(report_type)
+        self.reporting_settings[familiar.name] = {
+            "type": report_type,
+            "enabled": True,
+            "start_time": __import__('time').time()
+        }
+        return f"Reporting enabled for {familiar.name} (type: {report_type})"
+    
+    def disable_reporting(self, familiar: 'GrimoireFamiliar') -> str:
+        """Disable reporting for a specific familiar."""
+        familiar.disable_reporting()
+        if familiar.name in self.reporting_settings:
+            self.reporting_settings[familiar.name]["enabled"] = False
+        return f"Reporting disabled for {familiar.name}"
+    
+    def enable_all_reporting(self, report_type: str = "all") -> str:
+        """Enable reporting for all registered familiars."""
+        enabled_count = 0
+        for familiar in self.active_familiars:
+            if familiar.state == "active":
+                self.enable_reporting(familiar, report_type)
+                enabled_count += 1
+        return f"Reporting enabled for {enabled_count} familiars"
+    
+    def disable_all_reporting(self) -> str:
+        """Disable reporting for all familiars."""
+        disabled_count = 0
+        for familiar in self.active_familiars:
+            if familiar.is_reporting:
+                self.disable_reporting(familiar)
+                disabled_count += 1
+        return f"Reporting disabled for {disabled_count} familiars"
+    
+    def get_report(self, familiar_name: Optional[str] = None) -> List[Activity]:
+        """Get activity reports from familiars."""
+        if familiar_name:
+            # Get report from specific familiar
+            for familiar in self.active_familiars:
+                if familiar.name == familiar_name and familiar.is_reporting_enabled():
+                    return familiar.get_report()
+            return []
+        else:
+            # Get reports from all reporting familiars
+            all_reports = []
+            for familiar in self.active_familiars:
+                if familiar.is_reporting_enabled():
+                    all_reports.extend(familiar.get_report())
+            return sorted(all_reports, key=lambda a: a.timestamp)
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """Get a summary of wrangler status and activity."""
+        total_familiars = len(self.active_familiars)
+        reporting_familiars = len([f for f in self.active_familiars if f.is_reporting])
+        active_familiars = len([f for f in self.active_familiars if f.state == "active"])
+        
+        total_activities = sum(len(f.activity_log) for f in self.active_familiars)
+        
+        return {
+            "total_familiars": total_familiars,
+            "active_familiars": active_familiars,
+            "reporting_familiars": reporting_familiars,
+            "total_activities_logged": total_activities,
+            "wrangler_active": self.is_active,
+            "reporting_settings": self.reporting_settings.copy()
+        }
+    
+    def clear_reports(self, familiar_name: Optional[str] = None) -> str:
+        """Clear activity reports."""
+        if familiar_name:
+            for familiar in self.active_familiars:
+                if familiar.name == familiar_name:
+                    familiar.clear_activity_log()
+                    return f"Reports cleared for {familiar_name}"
+            return f"Familiar {familiar_name} not found"
+        else:
+            cleared_count = 0
+            for familiar in self.active_familiars:
+                if familiar.activity_log:
+                    familiar.clear_activity_log()
+                    cleared_count += 1
+            return f"Reports cleared for {cleared_count} familiars"
+    
+    def filter_activities(self, activity_type: Optional[str] = None, 
+                         time_range: Optional[tuple] = None) -> List[Activity]:
+        """Filter activities by type and/or time range."""
+        all_activities = self.get_report()
+        
+        filtered = all_activities
+        
+        if activity_type:
+            filtered = [a for a in filtered if a.activity_type == activity_type]
+        
+        if time_range:
+            start_time, end_time = time_range
+            filtered = [a for a in filtered if start_time <= a.timestamp <= end_time]
+        
+        return filtered
+    
+    def get_familiar_stats(self) -> Dict[str, Dict[str, Any]]:
+        """Get statistics for each familiar."""
+        stats = {}
+        for familiar in self.active_familiars:
+            activity_counts = {}
+            for activity in familiar.activity_log:
+                activity_type = activity.activity_type
+                activity_counts[activity_type] = activity_counts.get(activity_type, 0) + 1
+            
+            stats[familiar.name] = {
+                "type": familiar.familiar_type,
+                "state": familiar.state,
+                "is_reporting": familiar.is_reporting,
+                "report_type": familiar.report_type,
+                "total_activities": len(familiar.activity_log),
+                "activity_breakdown": activity_counts,
+                "spirit": familiar.spirit_ref.name if familiar.spirit_ref else None
+            }
+        
+        return stats
+
+
+# =============================================================================
 # Hierarchical Agent System: Goals, Archons, Spirits
 # =============================================================================
 
@@ -575,7 +756,7 @@ class GrimoireSpirit(GoalSeeker):
         return archon_goal in relations.get(spirit_goal, [])
 
 
-# Enhanced Familiar with Spirit Integration
+# Enhanced Familiar with Spirit Integration and Reporting
 class GrimoireFamiliar:
     """Represents a runtime familiar - a semi-autonomous agent."""
     
@@ -585,10 +766,16 @@ class GrimoireFamiliar:
         self.capabilities = capabilities
         self.charge = None  # The entity this familiar manages
         self.spirit_ref: Optional[GrimoireSpirit] = None  # Reference to managing spirit
+        self.wrangler_ref: Optional[FamiliarWrangler] = None  # Reference to wrangler
         self.state = "active"  # active, inactive, dismissed
         self.properties = {}
         self.reactive_behaviors = []
         self.interaction_protocols = []
+        
+        # Reporting system
+        self.is_reporting = False
+        self.report_type = "none"  # "none", "all", "self", "inter", "environmental", "command"
+        self.activity_log: List[Activity] = []
         
         # Initialize reactive behaviors
         self.initialize_reactive_behaviors()
@@ -610,6 +797,8 @@ class GrimoireFamiliar:
         if self.state != "active":
             return
         
+        self.log_activity("self", "Starting autonomous update", {"behaviors": len(self.reactive_behaviors)})
+        
         # Execute reactive behaviors
         for behavior in self.reactive_behaviors:
             self.execute_reactive_behavior(behavior)
@@ -619,6 +808,8 @@ class GrimoireFamiliar:
         
         # Report to spirit
         self.report_to_spirit()
+        
+        self.log_activity("self", "Completed autonomous update", {})
     
     def execute_reactive_behavior(self, behavior: str):
         """Execute a reactive behavior."""
@@ -680,26 +871,35 @@ class GrimoireFamiliar:
         if self.state != "active":
             raise RuntimeError(f"Familiar {self.name} is not active")
         
+        self.log_activity("command", f"Executing command: {command}", {"arguments": arguments})
+        
         # Handle built-in commands
         if command == "activate":
             self.state = "active"
+            self.log_activity("self", "Activated", {"previous_state": "inactive"})
             return f"Familiar {self.name} activated"
         elif command == "deactivate":
             self.state = "inactive"
+            self.log_activity("self", "Deactivated", {"previous_state": "active"})
             return f"Familiar {self.name} deactivated"
         elif command == "set_charge":
             if len(arguments) != 1:
                 raise RuntimeError("set_charge expects 1 argument (entity)")
+            old_charge = self.charge
             self.charge = arguments[0]
+            self.log_activity("self", "Charge assigned", {"old_charge": old_charge, "new_charge": self.charge})
             return f"Familiar {self.name} now manages {self.charge}"
         
         # Look for capability that can handle this command
         for capability in self.capabilities.values():
             try:
-                return capability.execute(command, arguments)
+                result = capability.execute(command, arguments)
+                self.log_activity("command", f"Command executed successfully: {command}", {"result": result})
+                return result
             except RuntimeError:
                 continue
         
+        self.log_activity("command", f"Command failed: {command}", {"error": "unknown command"})
         raise RuntimeError(f"Unknown command '{command}' for familiar {self.name}")
     
     def inquire(self, query: str) -> Any:
@@ -731,7 +931,93 @@ class GrimoireFamiliar:
     def dismiss(self) -> str:
         """Dismiss this familiar."""
         self.state = "dismissed"
+        self.disable_reporting()
         return f"Familiar {self.name} dismissed"
+    
+    # =============================================================================
+    # Reporting System Methods
+    # =============================================================================
+    
+    def enable_reporting(self, report_type: str = "all") -> str:
+        """Enable activity reporting for this familiar."""
+        self.is_reporting = True
+        self.report_type = report_type
+        self.log_activity("self", f"Reporting enabled (type: {report_type})", {"previous_state": "disabled"})
+        return f"Reporting enabled for {self.name}"
+    
+    def disable_reporting(self) -> str:
+        """Disable activity reporting for this familiar."""
+        if self.is_reporting:
+            self.log_activity("self", "Reporting disabled", {"activities_logged": len(self.activity_log)})
+        self.is_reporting = False
+        self.report_type = "none"
+        return f"Reporting disabled for {self.name}"
+    
+    def is_reporting_enabled(self) -> bool:
+        """Check if reporting is currently enabled."""
+        return self.is_reporting and self.state == "active"
+    
+    def log_activity(self, activity_type: str, description: str, details: Optional[Dict[str, Any]] = None) -> None:
+        """Log an activity if reporting is enabled."""
+        if not self.is_reporting:
+            return
+        
+        # Check if this activity type should be logged based on report_type
+        should_log = False
+        
+        if self.report_type == "all":
+            should_log = True
+        elif self.report_type == "self" and activity_type == "self":
+            should_log = True
+        elif self.report_type == "inter" and activity_type == "inter_familiar":
+            should_log = True
+        elif self.report_type == "environmental" and activity_type == "environmental":
+            should_log = True
+        elif self.report_type == "command" and activity_type == "command":
+            should_log = True
+        elif self.report_type == activity_type:  # Exact match
+            should_log = True
+        
+        if should_log:
+            activity = Activity(
+                timestamp=__import__('time').time(),
+                familiar_name=self.name,
+                activity_type=activity_type,
+                description=description,
+                details=details or {}
+            )
+            self.activity_log.append(activity)
+            
+            # Limit activity log size to prevent memory issues
+            if len(self.activity_log) > 1000:
+                self.activity_log = self.activity_log[-500:]  # Keep last 500 activities
+    
+    def get_report(self) -> List[Activity]:
+        """Get the current activity report."""
+        return self.activity_log.copy()
+    
+    def clear_activity_log(self) -> str:
+        """Clear the activity log."""
+        cleared_count = len(self.activity_log)
+        self.activity_log.clear()
+        return f"Cleared {cleared_count} activities from {self.name}"
+    
+    def get_activity_summary(self) -> Dict[str, Any]:
+        """Get a summary of logged activities."""
+        if not self.activity_log:
+            return {"total": 0, "by_type": {}, "latest": None}
+        
+        by_type = {}
+        for activity in self.activity_log:
+            by_type[activity.activity_type] = by_type.get(activity.activity_type, 0) + 1
+        
+        return {
+            "total": len(self.activity_log),
+            "by_type": by_type,
+            "latest": self.activity_log[-1].description if self.activity_log else None,
+            "reporting_type": self.report_type,
+            "is_reporting": self.is_reporting
+        }
 
 
 # Built-in familiar types
@@ -827,6 +1113,7 @@ class GrimoireInterpreter:
         self.archons = {}   # Active archons
         self.spirits = {}   # Active spirits
         self.interaction_matrix = InteractionMatrix()  # Agent relationships
+        self.familiar_wrangler = FamiliarWrangler()  # Familiar monitoring system
         
         # Define built-in functions
         self._define_builtins()
@@ -853,6 +1140,10 @@ class GrimoireInterpreter:
             capabilities = FAMILIAR_TYPES[familiar_type]()
             familiar = GrimoireFamiliar(familiar_name, familiar_type, capabilities)
             self.familiars[familiar_name] = familiar
+            
+            # Automatically register with wrangler
+            self.familiar_wrangler.register_familiar(familiar)
+            
             return familiar
         
         # Built-in function for creating archons
@@ -888,11 +1179,76 @@ class GrimoireInterpreter:
                 familiar.autonomous_update()
             return "Autonomous update completed"
         
+        # Built-in wrangler functions
+        def create_wrangler_builtin(interpreter, arguments):
+            # Wrangler is already created, just return it
+            return self.familiar_wrangler
+        
+        def register_familiar_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("register_familiar expects 1 argument (familiar)")
+            familiar = arguments[0]
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("Argument must be a familiar")
+            return self.familiar_wrangler.register_familiar(familiar)
+        
+        def enable_reporting_builtin(interpreter, arguments):
+            if len(arguments) < 1:
+                raise RuntimeError("enable_reporting expects at least 1 argument (familiar)")
+            familiar = arguments[0]
+            report_type = arguments[1] if len(arguments) > 1 else "all"
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("First argument must be a familiar")
+            return self.familiar_wrangler.enable_reporting(familiar, report_type)
+        
+        def disable_reporting_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("disable_reporting expects 1 argument (familiar)")
+            familiar = arguments[0]
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("Argument must be a familiar")
+            return self.familiar_wrangler.disable_reporting(familiar)
+        
+        def get_wrangler_report_builtin(interpreter, arguments):
+            familiar_name = arguments[0] if len(arguments) > 0 else None
+            report = self.familiar_wrangler.get_report(familiar_name)
+            # Convert activities to strings for display
+            return [f"[{a.timestamp:.2f}] {a.familiar_name}: {a.description} ({a.activity_type})" for a in report]
+        
+        def get_wrangler_summary_builtin(interpreter, arguments):
+            return self.familiar_wrangler.get_summary()
+        
+        def clear_wrangler_reports_builtin(interpreter, arguments):
+            familiar_name = arguments[0] if len(arguments) > 0 else None
+            return self.familiar_wrangler.clear_reports(familiar_name)
+        
+        def enable_all_reporting_builtin(interpreter, arguments):
+            report_type = arguments[0] if len(arguments) > 0 else "all"
+            return self.familiar_wrangler.enable_all_reporting(report_type)
+        
+        def disable_all_reporting_builtin(interpreter, arguments):
+            return self.familiar_wrangler.disable_all_reporting()
+        
+        def get_familiar_stats_builtin(interpreter, arguments):
+            return self.familiar_wrangler.get_familiar_stats()
+        
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
         self.globals.define("create_spirit", create_spirit_builtin)
         self.globals.define("autonomous_update", autonomous_update_builtin)
+        
+        # Wrangler functions
+        self.globals.define("create_wrangler", create_wrangler_builtin)
+        self.globals.define("register_familiar", register_familiar_builtin)
+        self.globals.define("enable_reporting", enable_reporting_builtin)
+        self.globals.define("disable_reporting", disable_reporting_builtin)
+        self.globals.define("get_wrangler_report", get_wrangler_report_builtin)
+        self.globals.define("get_wrangler_summary", get_wrangler_summary_builtin)
+        self.globals.define("clear_wrangler_reports", clear_wrangler_reports_builtin)
+        self.globals.define("enable_all_reporting", enable_all_reporting_builtin)
+        self.globals.define("disable_all_reporting", disable_all_reporting_builtin)
+        self.globals.define("get_familiar_stats", get_familiar_stats_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
