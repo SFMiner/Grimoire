@@ -251,6 +251,9 @@ class GrimoireLexer:
         elif c == '$':
             # Handle $SCROLL() literals
             if self.match_word('SCROLL'):
+                # Advance past 'SCROLL'
+                for _ in range(6):  # len('SCROLL')
+                    self.advance()
                 self.scroll_literal()
         elif c.isalpha() or c == '_':
             # Handle identifiers and keywords
