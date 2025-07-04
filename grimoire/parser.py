@@ -223,6 +223,12 @@ class PlaneStatement(Statement):
 
 
 @dataclass
+class ShiftStatement(Statement):
+    """Represents plane shifts (shift to PlaneName)."""
+    target_plane: str
+
+
+@dataclass
 class EffectStatement(Statement):
     """Represents effect definitions."""
     name: str
@@ -596,7 +602,9 @@ class GrimoireParser:
             return self.bind_statement()
         if self.match(TokenType.SCRY):
             return self.scry_statement()
-        if self.match(TokenType.IF, TokenType.SHOULD):
+        if self.match(TokenType.SHIFT):
+            return self.shift_statement()
+        if self.match(TokenType.SHOULD):
             return self.if_statement()
         if self.match(TokenType.WHILE_CHARGED):
             return self.while_statement()
@@ -644,6 +652,16 @@ class GrimoireParser:
         """Parse scry (print) statements."""
         expr = self.expression()
         return ScryStatement(expr)
+    
+    def shift_statement(self) -> ShiftStatement:
+        """Parse shift statements (shift to PlaneName)."""
+        # Expect: shift to <plane_name>
+        if not self.check(TokenType.IDENTIFIER) or self.peek().lexeme != "to":
+            raise ParseError(self.peek(), "Expected 'to' after 'shift'")
+        
+        self.advance()  # consume 'to'
+        target_plane = self.consume(TokenType.IDENTIFIER, "Expected plane name after 'shift to'").lexeme
+        return ShiftStatement(target_plane)
     
     def if_statement(self) -> IfStatement:
         """Parse if statements."""

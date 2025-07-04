@@ -1,0 +1,133 @@
+# =============================================================================
+# Grimoire Phase 4 Advanced Features Demo
+# Demonstrating Planar System and Magical Aura (Effect) System
+# =============================================================================
+
+# Main plane - Material realm
+plane material:
+    scry $SCROLL(=== Material Plane - Base Reality ===)
+    
+    artifact SpellCaster:
+        essence name = $SCROLL(Default)
+        essence mana = 100
+        essence active_effects = $SCROLL()
+        
+        ritual invoke(caster_name):
+            bind self.name = caster_name
+            scry $SCROLL(Spellcaster ) added to caster_name added to $SCROLL( manifests in the material plane)
+        
+        ritual cast_protection():
+            should self.mana is greater than 20:
+                diminish self.mana by 20
+                scry $SCROLL() added to self.name added to $SCROLL( casts a protective ward!)
+                scry $SCROLL(Mana remaining: ) added to self.mana
+                return $SCROLL(protection)
+            lest:
+                scry $SCROLL(Not enough mana for protection spell!)
+                return $SCROLL()
+        
+        ritual cast_fireball():
+            should self.mana is greater than 30:
+                diminish self.mana by 30
+                scry $SCROLL() added to self.name added to $SCROLL( hurls a blazing fireball!)
+                scry $SCROLL(Mana remaining: ) added to self.mana
+                return $SCROLL(fire)
+            lest:
+                scry $SCROLL(Not enough mana for fireball!)
+                return $SCROLL()
+        
+        ritual teleport_to_plane(plane_name):
+            should self.mana is greater than 50:
+                diminish self.mana by 50
+                scry $SCROLL() added to self.name added to $SCROLL( opens a dimensional gateway to ) added to plane_name
+                shift to plane_name
+                return $SCROLL(teleported)
+            lest:
+                scry $SCROLL(Not enough mana for planar travel!)
+                return $SCROLL()
+
+# Ethereal plane - Reduced magical density
+plane ethereal:
+    scry $SCROLL(=== Ethereal Plane - Misty Realm ===)
+    
+    ritual ethereal_meditation():
+        scry $SCROLL(In the ethereal realm, magic flows differently...)
+        scry $SCROLL(Spells here require less energy but have reduced power)
+        return $SCROLL(meditative_trance)
+    
+    ritual return_to_material():
+        scry $SCROLL(Shifting back to the material plane...)
+        shift to material
+
+# Shadow plane - Isolated and dangerous
+plane shadow:
+    scry $SCROLL(=== Shadow Plane - Realm of Darkness ===)
+    
+    ritual shadow_magic():
+        scry $SCROLL(The shadow plane enhances necromantic energies...)
+        scry $SCROLL(But protective spells are weakened here)
+        return $SCROLL(shadow_power)
+    
+    ritual escape_shadows():
+        scry $SCROLL(Fleeing the oppressive darkness...)
+        shift to material
+
+# Main program demonstrating planar travel and magical effects
+ritual main():
+    scry $SCROLL(=== Grimoire Phase 4 Advanced Features Demo ===)
+    scry $SCROLL()
+    
+    # Create our spellcaster in the material plane
+    bind wizard = conjure SpellCaster upon $SCROLL(Elara)
+    
+    # Cast some spells in the material plane
+    scry $SCROLL(--- Material Plane Magic ---) 
+    wizard.cast_protection upon
+    wizard.cast_fireball upon
+    
+    scry $SCROLL()
+    scry $SCROLL(--- Planar Travel Demonstration ---)
+    
+    # Travel to the ethereal plane
+    wizard.teleport_to_plane upon $SCROLL(ethereal)
+    ethereal_meditation upon
+    
+    scry $SCROLL()
+    
+    # Return to material and travel to shadow plane
+    return_to_material upon
+    wizard.teleport_to_plane upon $SCROLL(shadow)
+    shadow_magic upon
+    
+    scry $SCROLL()
+    
+    # Return to material plane
+    escape_shadows upon
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Magical Effect Composition Demo ===)
+    scry $SCROLL(Note: Effect composition happens automatically in the background)
+    scry $SCROLL(The system manages aura compatibility and magical stability)
+    
+    # Cast multiple spells to demonstrate effect composition
+    wizard.cast_protection upon
+    wizard.cast_protection upon  # Stacking protective effects
+    
+    scry $SCROLL()
+    scry $SCROLL(--- Advanced Planar Portal Demo ---) 
+    
+    # Demonstrate portal syntax (if implemented)
+    scry $SCROLL(Attempting to scry across planes...)
+    scry $SCROLL(This would use: portal ethereal.ethereal_meditation())
+    
+    scry $SCROLL()
+    scry $SCROLL(=== Demo Complete ===)
+    scry $SCROLL(Phase 4 features demonstrated:)
+    scry $SCROLL(✓ Planar system with plane definitions)
+    scry $SCROLL(✓ Plane shifting with 'shift to' syntax)
+    scry $SCROLL(✓ Cross-plane function calls)
+    scry $SCROLL(✓ Magical aura system (background))
+    scry $SCROLL(✓ Effect composition and checking (background))
+
+# Execute the main demonstration
+main upon
