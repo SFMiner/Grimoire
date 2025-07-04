@@ -1,0 +1,34 @@
+# Light Magic School Demo
+# Using healing, protection, and positive magic terminology
+
+blessing healing_ritual(patient):
+    bless patient_health = 50
+    bless healing_power = 25
+    
+    if blessed patient_health is lesser than 100:
+        empower patient_health by healing_power
+        illuminate $SCROLL(✨ Healing light surrounds the patient...)
+        reveal $SCROLL(🌟 Patient's health restored to ) added to patient_health
+    else darkened:
+        enlighten $SCROLL(💫 Patient is already at full health!)
+    
+    return patient_health
+
+blessing purify_corruption(target_corruption):
+    if blessed target_corruption is greater than 0:
+        purify target_corruption by 10
+        illuminate $SCROLL(🕊️ Light cleanses the darkness...)
+        return target_corruption
+    else darkened:
+        reveal $SCROLL(✨ Already pure!)
+        return 0
+
+# Demonstrate the healing magic
+bless wounded_health = healing_ritual upon 30
+bless corruption_level = 25
+bless cleansed = purify_corruption upon corruption_level
+
+enlighten $SCROLL()
+reveal $SCROLL(🏥 Healing Sanctuary Complete!)
+illuminate $SCROLL(✨ Final patient health: ) added to wounded_health
+enlighten $SCROLL(🌟 May the light guide your path!)
