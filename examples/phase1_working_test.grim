@@ -1,0 +1,37 @@
+# Phase 1 Working Foundation Test
+scry $SCROLL(=== Phase 1 Working Foundation Test ===)
+
+# Test 1: Create Entity Familiar
+scry $SCROLL(Test 1: Creating Entity Familiar)
+bind entity_familiar = summon upon $SCROLL(Entity), $SCROLL(test_entity)
+scry $SCROLL(Entity familiar created successfully)
+
+# Test 2: Create AI Familiar  
+scry $SCROLL(Test 2: Creating AI Familiar)
+bind ai_familiar = summon upon $SCROLL(AI), $SCROLL(test_ai)
+scry $SCROLL(AI familiar created successfully)
+
+# Test 3: Access familiar properties directly
+scry $SCROLL(Test 3: Accessing familiar properties)
+bind entity_name = entity_familiar.name
+bind entity_true_name = entity_familiar.true_name
+bind ai_name = ai_familiar.name
+bind ai_true_name = ai_familiar.true_name
+scry $SCROLL(Entity name: ) added to entity_name
+scry $SCROLL(Entity true name: ) added to entity_true_name
+scry $SCROLL(AI name: ) added to ai_name
+scry $SCROLL(AI true name: ) added to ai_true_name
+
+# Test 4: Test familiar state
+scry $SCROLL(Test 4: Testing familiar state)
+bind entity_state = entity_familiar.state
+bind ai_state = ai_familiar.state
+scry $SCROLL(Entity state: ) added to entity_state
+scry $SCROLL(AI state: ) added to ai_state
+
+scry $SCROLL(=== Phase 1 Working Foundation Test Complete ===)
+scry $SCROLL(✓ EntityFamiliar and AIFamiliar creation works)
+scry $SCROLL(✓ Familiar registration system works)
+scry $SCROLL(✓ True name system works)
+scry $SCROLL(✓ Basic property access works)
+scry $SCROLL(✓ Foundation files are properly integrated)

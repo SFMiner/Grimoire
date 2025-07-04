@@ -554,7 +554,16 @@ class AIFamiliar(GrimoireFamiliar):
     # Override inquire to handle AI-specific queries
     def inquire(self, query: str) -> Any:
         """Handle AI-specific inquiries."""
-        if query.startswith("goal."):
+        # Handle basic familiar properties
+        if query == "name":
+            return self.name
+        elif query == "true_name":
+            return self.true_name
+        elif query == "state":
+            return self.state
+        elif query == "familiar_type":
+            return self.familiar_type.name if hasattr(self.familiar_type, 'name') else str(self.familiar_type)
+        elif query.startswith("goal."):
             goal_name = query[5:]  # Remove "goal." prefix
             goal = self.get_goal(goal_name)
             return goal.current_satisfaction if goal else None
