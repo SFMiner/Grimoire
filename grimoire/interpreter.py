@@ -1625,7 +1625,12 @@ class GrimoireFamiliar:
     def receive_from_socket(self, name: str):
         """Return latest value received on socket (or None)."""
         sock = self.get_socket(name)
-        return sock.value
+        val = sock.value
+        # If structured message, log receipt
+        from grimoire.messaging import is_message
+        if is_message(val):
+            self.log_activity("inter_familiar", "Message received", {"message": str(val)})
+        return val
 
 
 # Built-in familiar types
@@ -2008,7 +2013,12 @@ class GrimoireInterpreter:
             message = arguments[1]
             if not isinstance(fam, GrimoireFamiliar):
                 raise RuntimeError("First argument must be a familiar")
-            fam.send_to_socket("message_output", message)
+
+            from grimoire.messaging import build_message  # Local import
+            # Build structured message; fam.true_name is immutable unique id
+            msg_obj = build_message(fam.true_name, message, category="direct")
+            fam.send_to_socket("message_output", msg_obj)
+            fam.log_activity("inter_familiar", "Message sent", {"message": str(msg_obj)})
             return "message sent"
 
         def familiar_broadcast_builtin(interpreter, arguments):
@@ -2024,7 +2034,10 @@ class GrimoireInterpreter:
                 sock = fam.get_socket("message_output")
             except RuntimeError:
                 sock = fam.add_socket("message_output", direction="output")
-            sock.send(msg)
+            from grimoire.messaging import build_message
+            msg_obj = build_message(fam.true_name, msg, category="broadcast")
+            sock.send(msg_obj)
+            fam.log_activity("inter_familiar", "Broadcast message", {"message": str(msg_obj), "receivers": len(sock.connections)})
             return "broadcast complete"
 
         self.globals.define("scry", scry_builtin)
