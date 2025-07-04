@@ -1269,6 +1269,14 @@ class GrimoireFamiliar:
         self.report_type = "none"  # "none", "all", "self", "inter", "environmental", "command"
         self.activity_log: List[Activity] = []
         
+        # --- Socket system -------------------------------------------------
+        # Sockets are lazily created via `add_socket`.  Keys are socket names.
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from .sockets import Socket  # pragma: no cover
+        self.sockets: Dict[str, "Socket"] = {}
+        # ---------------------------------------------------------------
+
         # Initialize reactive behaviors
         self.initialize_reactive_behaviors()
     
@@ -1410,6 +1418,13 @@ class GrimoireFamiliar:
             return list(self.capabilities.keys())
         elif query == "spirit":
             return self.spirit_ref.name if self.spirit_ref else None
+        elif query == "sockets":
+            return list(self.sockets.keys())
+        # New: allow querying for a specific socket object or its value
+        elif query.endswith("_socket") and query[:-7] in self.sockets:
+            return self.sockets[query[:-7]]
+        elif query in self.sockets:
+            return self.sockets[query]
         
         # Look for capability that can handle this query
         for capability in self.capabilities.values():
@@ -1578,6 +1593,39 @@ class GrimoireFamiliar:
                 for spirit_name, pact in self.pacts.items()
             }
         }
+
+    # ---------------------------------------------------------------------
+    # Socket helpers
+    # ---------------------------------------------------------------------
+    def add_socket(self, name: str, *, data_type: str | None = None, direction: str = "input"):
+        """Create a socket attached to this familiar.
+
+        Returns the newly created socket so callers can chain operations
+        or connect immediately.
+        """
+        from .sockets import Socket  # Local import to avoid cycles
+
+        if name in self.sockets:
+            raise RuntimeError(f"Socket '{name}' already exists on {self.name}")
+        sock = Socket(self, name, data_type, direction=direction)
+        self.sockets[name] = sock
+        return sock
+
+    def get_socket(self, name: str):
+        """Return socket by *name* or raise."""
+        if name not in self.sockets:
+            raise RuntimeError(f"Socket '{name}' not found on {self.name}")
+        return self.sockets[name]
+
+    def send_to_socket(self, name: str, data):
+        """Convenience wrapper for `self.get_socket(name).send(data)`."""
+        sock = self.get_socket(name)
+        sock.send(data)
+
+    def receive_from_socket(self, name: str):
+        """Return latest value received on socket (or None)."""
+        sock = self.get_socket(name)
+        return sock.value
 
 
 # Built-in familiar types
@@ -1880,6 +1928,46 @@ class GrimoireInterpreter:
                 }
             }
         
+        # ------------------------------------------------------------------
+        # Socket system built-ins
+        # ------------------------------------------------------------------
+        def create_socket_builtin(interpreter, arguments):
+            """create_socket(familiar, name, direction='input'|'output') -> Socket"""
+            if len(arguments) < 2:
+                raise RuntimeError("create_socket expects at least 2 arguments (familiar, name)")
+            familiar, name = arguments[0], arguments[1]
+            direction = arguments[2] if len(arguments) > 2 else "input"
+            if not isinstance(familiar, GrimoireFamiliar):
+                raise RuntimeError("First argument must be a familiar")
+            return familiar.add_socket(name, direction=direction)
+
+        def connect_socket_builtin(interpreter, arguments):
+            """connect_socket(output_socket, input_socket)
+            Establish a unidirectional connection from an *output* socket to an
+            *input* socket.  Both sockets are Python `Socket` objects exposed by
+            familiars via property access or explicit creation.
+            """
+            if len(arguments) != 2:
+                raise RuntimeError("connect_socket expects 2 arguments (output_socket, input_socket)")
+            output_socket, input_socket = arguments
+            from grimoire.sockets import Socket  # Local import to avoid cycles
+            if not isinstance(output_socket, Socket):
+                raise RuntimeError("First argument must be a Socket (output)")
+            if not isinstance(input_socket, Socket):
+                raise RuntimeError("Second argument must be a Socket (input)")
+            output_socket.connect_to(input_socket)
+            return f"Connected {output_socket.owner.name}.{output_socket.name} -> {input_socket.owner.name}.{input_socket.name}"
+
+        def disconnect_socket_builtin(interpreter, arguments):
+            if len(arguments) != 2:
+                raise RuntimeError("disconnect_socket expects 2 arguments (output_socket, input_socket)")
+            output_socket, input_socket = arguments
+            from grimoire.sockets import Socket
+            if not isinstance(output_socket, Socket) or not isinstance(input_socket, Socket):
+                raise RuntimeError("Both arguments must be Socket objects")
+            output_socket.disconnect_from(input_socket)
+            return f"Disconnected {output_socket.owner.name}.{output_socket.name} -X- {input_socket.owner.name}.{input_socket.name}"
+        
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -1905,6 +1993,11 @@ class GrimoireInterpreter:
         self.globals.define("oversee_domain", oversee_domain_builtin)
         self.globals.define("get_pact_summary", get_pact_summary_builtin)
         self.globals.define("get_spirit_pacts", get_spirit_pacts_builtin)
+        
+        # Socket functions
+        self.globals.define("create_socket", create_socket_builtin)
+        self.globals.define("connect_socket", connect_socket_builtin)
+        self.globals.define("disconnect_socket", disconnect_socket_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
