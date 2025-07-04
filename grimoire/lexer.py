@@ -42,8 +42,8 @@ class TokenType(Enum):
     DISMISS = auto()        # Familiar dismissal
     
     # Control Flow
-    IF_ENCHANTED = auto()   # if statement
-    ELSE_CURSED = auto()    # else statement
+    SHOULD = auto()         # if statement
+    LEST = auto()           # else statement
     WHILE_CHARGED = auto()  # while loop
     FOR_EACH = auto()       # for loop start
     ARCANA = auto()         # for loop variable
@@ -135,12 +135,12 @@ class GrimoireLexer:
         'or': TokenType.OR,
         'not': TokenType.NOT,
         'return': TokenType.RETURN,
+        'should': TokenType.SHOULD,
+        'lest': TokenType.LEST,
     }
     
     # Multi-word keywords and operators
     MULTI_WORD_TOKENS = {
-        'if enchanted': TokenType.IF_ENCHANTED,
-        'else cursed': TokenType.ELSE_CURSED,
         'while charged': TokenType.WHILE_CHARGED,
         'for each': TokenType.FOR_EACH,
         'break spell': TokenType.BREAK_SPELL,
@@ -167,6 +167,26 @@ class GrimoireLexer:
         self.current = 0
         self.line = 1
         self.column = 1
+        
+        # Initialize with keyword variants if available
+        self._init_keywords()
+    
+    def _init_keywords(self):
+        """Initialize keyword mappings with support for thematic variants."""
+        try:
+            from .keyword_variants import KEYWORD_VARIANTS
+            
+            # Get all keyword mappings from the variants system
+            variant_keywords = KEYWORD_VARIANTS.get_all_keywords()
+            variant_multiwords = KEYWORD_VARIANTS.get_all_multiwords()
+            
+            # Update our keyword dictionaries to include all variants
+            self.KEYWORDS.update(variant_keywords)
+            self.MULTI_WORD_TOKENS.update(variant_multiwords)
+            
+        except ImportError:
+            # If keyword variants aren't available, use defaults (already defined as class attributes)
+            pass
     
     def scan_tokens(self) -> List[Token]:
         """Scan the source code and return a list of tokens."""

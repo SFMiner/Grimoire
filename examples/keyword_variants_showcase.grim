@@ -1,0 +1,39 @@
+# Grimoire Keyword Variants Showcase
+# Demonstrating different magical schools using equivalent functionality
+
+# Light Magic School - Healing and Protection
+blessing heal():
+    illuminate $SCROLL(✨ Light magic: Healing energies flow...)
+
+# Shadow Magic School - Dark Arts  
+curse drain():
+    whisper $SCROLL(🌑 Shadow magic: Dark forces stir...)
+
+# Arcane Magic School - Pure Knowledge
+formula calculate():
+    divine $SCROLL(🔮 Arcane magic: Mathematical precision...)
+
+# Nature Magic School - Elemental Forces  
+song grow():
+    echo $SCROLL(🌿 Nature magic: Life force awakens...)
+
+# Divine Magic School - Holy Power
+miracle bless():
+    herald $SCROLL(⭐ Divine magic: Celestial power descends...)
+
+# Trickster Magic School - Chaos and Change
+prank confuse():
+    jest $SCROLL(🎭 Trickster magic: Reality bends playfully...)
+
+# Call each magical school
+heal upon
+drain upon  
+calculate upon
+grow upon
+bless upon
+confuse upon
+
+# Final message using Light magic
+reveal $SCROLL()
+enlighten $SCROLL(🎉 All magical schools demonstrated successfully!)
+illuminate $SCROLL(✨ Choose your path, young mage! ✨)

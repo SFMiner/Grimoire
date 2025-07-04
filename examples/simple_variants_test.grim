@@ -1,0 +1,23 @@
+# Simple Keyword Variants Test
+# Testing different magical schools
+
+# Light Magic  
+blessing light_test():
+    illuminate $SCROLL(✨ Light magic is working!)
+
+bless light_result = light_test upon
+
+# Shadow Magic
+curse shadow_test():
+    whisper $SCROLL(🌑 Shadow magic is working!)
+
+hex shadow_result = shadow_test upon
+
+# Arcane Magic
+formula arcane_test():
+    divine $SCROLL(🔮 Arcane magic is working!)
+
+inscribe arcane_result = arcane_test upon
+
+# All styles working together!
+enlighten $SCROLL(🎭 All magical schools are functional!)

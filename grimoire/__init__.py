@@ -11,9 +11,11 @@ __author__ = "Grimoire Language Team"
 from .lexer import GrimoireLexer, TokenType, Token, tokenize_grimoire
 from .parser import GrimoireParser, parse_grimoire
 from .interpreter import GrimoireInterpreter
+from .keyword_variants import KeywordVariants, MagicSchool, ThematicCodeGenerator
 
 __all__ = [
     'GrimoireLexer', 'TokenType', 'Token', 'tokenize_grimoire',
     'GrimoireParser', 'parse_grimoire',
-    'GrimoireInterpreter'
+    'GrimoireInterpreter',
+    'KeywordVariants', 'MagicSchool', 'ThematicCodeGenerator'
 ]
