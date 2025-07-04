@@ -167,6 +167,26 @@ class GrimoireLexer:
         self.current = 0
         self.line = 1
         self.column = 1
+        
+        # Initialize with keyword variants if available
+        self._init_keywords()
+    
+    def _init_keywords(self):
+        """Initialize keyword mappings with support for thematic variants."""
+        try:
+            from .keyword_variants import KEYWORD_VARIANTS
+            
+            # Get all keyword mappings from the variants system
+            variant_keywords = KEYWORD_VARIANTS.get_all_keywords()
+            variant_multiwords = KEYWORD_VARIANTS.get_all_multiwords()
+            
+            # Update our keyword dictionaries to include all variants
+            self.KEYWORDS.update(variant_keywords)
+            self.MULTI_WORD_TOKENS.update(variant_multiwords)
+            
+        except ImportError:
+            # If keyword variants aren't available, use defaults (already defined as class attributes)
+            pass
     
     def scan_tokens(self) -> List[Token]:
         """Scan the source code and return a list of tokens."""

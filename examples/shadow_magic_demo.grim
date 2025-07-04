@@ -1,0 +1,42 @@
+# Shadow Magic School Demo  
+# Using destructive, dark magic terminology
+
+curse drain_life(victim):
+    hex victim_health = 100
+    hex shadow_damage = 30
+    
+    if cursed victim_health is greater than 0:
+        weaken victim_health by shadow_damage
+        whisper $SCROLL(🌑 Dark tendrils drain the life force...)
+        manifest $SCROLL(💀 Victim's health reduced to ) added to victim_health
+    else blessed:
+        materialize $SCROLL(⚰️ The victim has no life left to drain!)
+    
+    return victim_health
+
+curse corrupt_soul(target_purity):
+    if cursed target_purity is greater than 0:
+        taint target_purity by 15
+        whisper $SCROLL(🖤 Shadows corrupt the pure soul...)
+        return target_purity
+    else blessed:
+        manifest $SCROLL(🌑 Already consumed by darkness!)
+        return 0
+
+hex necromantic_summoning():
+    hex undead_count = 0
+    weaken undead_count by -3  # Adding by subtracting negative
+    whisper $SCROLL(💀 Rising from the grave...)
+    manifest $SCROLL(🧟 ) added to undead_count added to $SCROLL( undead minions summoned!)
+    return undead_count
+
+# Demonstrate the dark magic
+hex victim_life = drain_life upon 80
+hex soul_purity = 50
+hex corrupted = corrupt_soul upon soul_purity
+hex minions = necromantic_summoning upon
+
+materialize $SCROLL()
+whisper $SCROLL(🏴 Dark Ritual Chamber Complete!)
+manifest $SCROLL(🌑 Victim's remaining life: ) added to victim_life
+whisper $SCROLL(💀 The darkness spreads eternal...)
