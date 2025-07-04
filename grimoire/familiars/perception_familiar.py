@@ -22,10 +22,21 @@ class PerceptionFamiliar(_base_cls()):
         self.vision_range = vision_range
 
         self.add_socket("perception_output", direction="output")
+        # register with spatial grid as sensor (no position, but treat as entity for queries)
+        from grimoire.game.spatial import get_global_grid
+        self.position = (0, 0)
+        get_global_grid().add_entity(self, self.position)
+
+    def set_position(self, x: int, y: int):
+        from grimoire.game.spatial import get_global_grid
+        self.position = (x, y)
+        get_global_grid().move_entity(self, self.position)
 
     def scan_environment(self):
-        # Placeholder – would hook into world model
-        perceived = {"entities": [], "resources": []}
+        from grimoire.game.spatial import get_global_grid
+        grid = get_global_grid()
+        entities = grid.query_visible(self.position, self.vision_range)
+        perceived = [e.name for e in entities if e is not self]
         self.send_to_socket("perception_output", perceived)
 
     def autonomous_update(self):

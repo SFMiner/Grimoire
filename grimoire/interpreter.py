@@ -2040,6 +2040,95 @@ class GrimoireInterpreter:
             fam.log_activity("inter_familiar", "Broadcast message", {"message": str(msg_obj), "receivers": len(sock.connections)})
             return "broadcast complete"
 
+        # ------------------------------------------------------------------
+        # AI goal/action helpers
+        # ------------------------------------------------------------------
+        def add_goal_builtin(interpreter, arguments):
+            if len(arguments) < 4:
+                raise RuntimeError("add_goal expects (ai_familiar, name, priority, condition_callable)")
+            fam, name, priority, condition = arguments[:4]
+            if not isinstance(fam, GrimoireFamiliar) or not hasattr(fam, 'add_goal'):
+                raise RuntimeError("First argument must be an AI familiar")
+            fam.add_goal(name, int(priority), condition)  # type: ignore[attr-defined]
+            return "goal added"
+
+        def add_action_builtin(interpreter, arguments):
+            if len(arguments) < 4:
+                raise RuntimeError("add_action expects (ai_familiar, goal_name, action_name, effect_callable, [precondition])")
+            fam, goal_name, action_name, effect = arguments[:4]
+            precond = arguments[4] if len(arguments) > 4 else (lambda _: True)
+            if not isinstance(fam, GrimoireFamiliar) or not hasattr(fam, 'add_action'):
+                raise RuntimeError("First argument must be an AI familiar")
+            fam.add_action(goal_name, action_name, effect, precond)  # type: ignore[attr-defined]
+            return "action added"
+
+        def update_ai_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("update_ai expects 1 argument (ai_familiar)")
+            fam = arguments[0]
+            if not isinstance(fam, GrimoireFamiliar) or not hasattr(fam, 'plan'):
+                raise RuntimeError("Argument must be an AI familiar")
+            fam.plan()  # type: ignore[attr-defined]
+            return "ai updated"
+
+        from grimoire.game.interactions import apply_damage as _apply_damage
+        def apply_damage_builtin(interpreter, arguments):
+            if len(arguments) != 2:
+                raise RuntimeError("apply_damage expects (entity_familiar, amount)")
+            fam, amt = arguments
+            return _apply_damage(fam, float(amt))
+
+        # Game loop helpers -------------------------------------------------
+        def start_game_loop_builtin(interpreter, arguments):
+            from grimoire.game.loop import GameLoopFamiliar
+            loop_type = arguments[0] if len(arguments) > 0 else 'real_time'
+            rate = int(arguments[1]) if len(arguments) > 1 else 60
+            loop = GameLoopFamiliar('game_loop', loop_type, rate)
+            self.familiars['game_loop'] = loop
+            loop.start()
+            return loop
+
+        def schedule_event_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError('schedule_event expects (game_loop, delay, callable, *args)')
+            loop, delay, func, *rest = arguments
+            from grimoire.game.loop import GameLoopFamiliar
+            if not isinstance(loop, GameLoopFamiliar):
+                raise RuntimeError('First arg must be a GameLoop familiar')
+            loop.schedule(float(delay), func, *rest)
+            return 'event scheduled'
+
+        def pause_game_builtin(interpreter, arguments):
+            loop = self.familiars.get('game_loop')
+            if loop:
+                return loop.pause()
+            return 'no game loop'
+
+        def resume_game_builtin(interpreter, arguments):
+            loop = self.familiars.get('game_loop')
+            if loop:
+                return loop.resume()
+            return 'no game loop'
+
+        def move_entity_builtin(interpreter, arguments):
+            if len(arguments) != 3:
+                raise RuntimeError('move_entity expects (entity_familiar, x, y)')
+            entity, x, y = arguments
+            if not hasattr(entity, 'set_position'):
+                raise RuntimeError('Familiar cannot be positioned')
+            entity.set_position(int(x), int(y))
+            return entity.position
+
+        def add_move_to_goal_builtin(interpreter, arguments):
+            if len(arguments) < 3:
+                raise RuntimeError('add_move_to_goal(ai_familiar, target_entity, radius)')
+            fam, target, radius = arguments[:3]
+            from grimoire.ai.pos_goals import MoveToGoal
+            if not hasattr(fam, 'add_custom_goal'):
+                raise RuntimeError('First arg must be AI familiar')
+            fam.add_custom_goal(MoveToGoal(target, int(radius)))  # type: ignore[attr-defined]
+            return 'move-to goal added'
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2073,6 +2162,16 @@ class GrimoireInterpreter:
         self.globals.define("link_familiars", link_familiars_builtin)
         self.globals.define("send_familiar_message", send_familiar_message_builtin)
         self.globals.define("familiar_broadcast", familiar_broadcast_builtin)
+        self.globals.define("add_goal", add_goal_builtin)
+        self.globals.define("add_action", add_action_builtin)
+        self.globals.define("update_ai", update_ai_builtin)
+        self.globals.define("apply_damage", apply_damage_builtin)
+        self.globals.define('start_game_loop', start_game_loop_builtin)
+        self.globals.define('schedule_event', schedule_event_builtin)
+        self.globals.define('pause_game', pause_game_builtin)
+        self.globals.define('resume_game', resume_game_builtin)
+        self.globals.define('move_entity', move_entity_builtin)
+        self.globals.define('add_move_to_goal', add_move_to_goal_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
