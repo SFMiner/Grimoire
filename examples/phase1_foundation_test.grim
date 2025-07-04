@@ -10,10 +10,10 @@ scry $SCROLL(Entity familiar created: ) added to entity_familiar
 
 # Test 2: Test Entity Property Management
 scry $SCROLL(Test 2: Entity Property Management)
-entity_familiar.update_property($SCROLL(health), 100)
-entity_familiar.update_property($SCROLL(name), $SCROLL(TestEntity))
-bind health = entity_familiar.get_property($SCROLL(health))
-bind name = entity_familiar.get_property($SCROLL(name))
+entity_familiar.update_property upon $SCROLL(health), 100
+entity_familiar.update_property upon $SCROLL(name), $SCROLL(TestEntity)
+bind health = entity_familiar.get_property upon $SCROLL(health)
+bind name = entity_familiar.get_property upon $SCROLL(name)
 scry $SCROLL(Entity health: ) added to health
 scry $SCROLL(Entity name: ) added to name
 
@@ -24,7 +24,7 @@ scry $SCROLL(AI familiar created: ) added to ai_familiar
 
 # Test 4: Test AI Goal System
 scry $SCROLL(Test 4: AI Goal System)
-bind ai_status = ai_familiar.get_ai_status()
+bind ai_status = ai_familiar.get_ai_status upon
 scry $SCROLL(AI status: ) added to ai_status
 
 # Test 5: Test Familiar Types and Capabilities
@@ -36,35 +36,35 @@ scry $SCROLL(AI familiar type: ) added to ai_type
 
 # Test 6: Test Socket System
 scry $SCROLL(Test 6: Socket System)
-bind entity_sockets = entity_familiar.inquire($SCROLL(sockets))
-bind ai_sockets = ai_familiar.inquire($SCROLL(sockets))
+bind entity_sockets = entity_familiar.inquire upon $SCROLL(sockets)
+bind ai_sockets = ai_familiar.inquire upon $SCROLL(sockets)
 scry $SCROLL(Entity sockets: ) added to entity_sockets
 scry $SCROLL(AI sockets: ) added to ai_sockets
 
 # Test 7: Test Property Change Tracking
 scry $SCROLL(Test 7: Property Change Tracking)
-entity_familiar.update_property($SCROLL(health), 80)
-entity_familiar.update_property($SCROLL(health), 90)
-bind property_history = entity_familiar.get_property_history($SCROLL(health))
+entity_familiar.update_property upon $SCROLL(health), 80
+entity_familiar.update_property upon $SCROLL(health), 90
+bind property_history = entity_familiar.get_property_history upon $SCROLL(health)
 scry $SCROLL(Health property history length: ) added to property_history
 
 # Test 8: Test AI Decision Making
 scry $SCROLL(Test 8: AI Decision Making)
-ai_familiar.update_world_model({$SCROLL(health): 1.0, $SCROLL(energy): 0.8})
-bind available_actions = ai_familiar.inquire($SCROLL(available_actions))
+ai_familiar.update_world_model upon {$SCROLL(health): 1.0, $SCROLL(energy): 0.8}
+bind available_actions = ai_familiar.inquire upon $SCROLL(available_actions)
 scry $SCROLL(Available AI actions: ) added to available_actions
 
 # Test 9: Test Familiar Inquiries
 scry $SCROLL(Test 9: Familiar Inquiries)
-bind entity_properties = entity_familiar.inquire($SCROLL(all_properties))
-bind ai_goals = ai_familiar.inquire($SCROLL(all_goals))
+bind entity_properties = entity_familiar.inquire upon $SCROLL(all_properties)
+bind ai_goals = ai_familiar.inquire upon $SCROLL(all_goals)
 scry $SCROLL(Entity properties: ) added to entity_properties
 scry $SCROLL(AI goals: ) added to ai_goals
 
 # Test 10: Test Autonomous Updates
 scry $SCROLL(Test 10: Autonomous Updates)
-entity_familiar.autonomous_update()
-ai_familiar.autonomous_update()
+entity_familiar.autonomous_update upon
+ai_familiar.autonomous_update upon
 scry $SCROLL(Autonomous updates completed)
 
 scry $SCROLL(=== Phase 1 Foundation Test Complete ===)

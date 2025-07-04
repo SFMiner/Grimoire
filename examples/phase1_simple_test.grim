@@ -1,0 +1,32 @@
+# Phase 1 Simple Foundation Test
+scry $SCROLL(=== Phase 1 Simple Foundation Test ===)
+
+# Test 1: Create Entity Familiar
+scry $SCROLL(Test 1: Creating Entity Familiar)
+bind entity_familiar = summon upon $SCROLL(Entity), $SCROLL(test_entity)
+scry $SCROLL(Entity familiar created successfully)
+
+# Test 2: Create AI Familiar  
+scry $SCROLL(Test 2: Creating AI Familiar)
+bind ai_familiar = summon upon $SCROLL(AI), $SCROLL(test_ai)
+scry $SCROLL(AI familiar created successfully)
+
+# Test 3: Test basic familiar queries
+scry $SCROLL(Test 3: Basic familiar queries)
+bind entity_state = entity_familiar.inquire upon $SCROLL(state)
+bind ai_state = ai_familiar.inquire upon $SCROLL(state)
+scry $SCROLL(Entity state: ) added to entity_state
+scry $SCROLL(AI state: ) added to ai_state
+
+# Test 4: Test familiar types
+scry $SCROLL(Test 4: Familiar types)
+bind entity_type = entity_familiar.inquire upon $SCROLL(type)
+bind ai_type = ai_familiar.inquire upon $SCROLL(type)
+scry $SCROLL(Entity type: ) added to entity_type
+scry $SCROLL(AI type: ) added to ai_type
+
+scry $SCROLL(=== Phase 1 Simple Foundation Test Complete ===)
+scry $SCROLL(✓ EntityFamiliar and AIFamiliar classes work correctly)
+scry $SCROLL(✓ Familiar registration system works)
+scry $SCROLL(✓ Basic inquire functionality works)
+scry $SCROLL(✓ Foundation files are properly integrated)

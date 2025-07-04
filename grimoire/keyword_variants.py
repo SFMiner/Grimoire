@@ -64,7 +64,7 @@ class KeywordVariants:
             # Object creation
             'CONJURE': {
                 MagicSchool.NEUTRAL: ['conjure', 'create', 'make'],
-                MagicSchool.LIGHT: ['summon', 'call forth', 'manifest'],
+                MagicSchool.LIGHT: ['call forth', 'manifest'],
                 MagicSchool.SHADOW: ['raise', 'spawn', 'birth'],
                 MagicSchool.NATURE: ['sprout', 'bloom', 'emerge'],
                 MagicSchool.DIVINE: ['create', 'forge', 'craft'],
