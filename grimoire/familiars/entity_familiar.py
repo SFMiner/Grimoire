@@ -373,7 +373,16 @@ class EntityFamiliar(GrimoireFamiliar):
     # Override inquire to handle entity-specific queries
     def inquire(self, query: str) -> Any:
         """Handle entity-specific inquiries."""
-        if query.startswith("property."):
+        # Handle basic familiar properties
+        if query == "name":
+            return self.name
+        elif query == "true_name":
+            return self.true_name
+        elif query == "state":
+            return self.state
+        elif query == "familiar_type":
+            return self.familiar_type.name if hasattr(self.familiar_type, 'name') else str(self.familiar_type)
+        elif query.startswith("property."):
             property_name = query[9:]  # Remove "property." prefix
             return self.get_property(property_name)
         elif query == "all_properties":
