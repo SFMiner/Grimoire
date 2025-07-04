@@ -22,7 +22,7 @@ Or clone and install from source:
 
 ```bash
 git clone https://github.com/SFMiner/Grimoire.git
-cd grimoire
+cd Grimoire
 pip install -e .
 ```
 
