@@ -16,6 +16,7 @@ class SpatialGrid:
         # map cell_index -> set(entity)
         self.cells: Dict[Tuple[int, int], set] = defaultdict(set)
         self.positions: Dict[Any, Position] = {}
+        self.obstacles: set[Position] = set()  # blocked world-grid cells
 
     # ------------------------------------------------------------------
     def _cell(self, pos: Position) -> Tuple[int, int]:
@@ -36,6 +37,15 @@ class SpatialGrid:
         pos = self.positions.pop(entity, None)
         if pos is not None:
             self.cells[self._cell(pos)].discard(entity)
+
+    # ------------------------------------------------------------------
+    # Obstacle/terrain helpers
+    # ------------------------------------------------------------------
+    def add_obstacle(self, x: int, y: int):
+        self.obstacles.add((x, y))
+
+    def remove_obstacle(self, x: int, y: int):
+        self.obstacles.discard((x, y))
 
     # simple square query
     def query_radius(self, center: Position, radius: int) -> List[Any]:
@@ -61,13 +71,97 @@ class SpatialGrid:
         dist_sq = dx * dx + dy * dy
         if max_distance is not None and dist_sq > max_distance * max_distance:
             return False
-        # No obstacle system yet – always visible within max_distance
+        # Bresenham line algorithm between points in grid space (cell units)
+        x0, y0 = a
+        x1, y1 = b
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+        x, y = x0, y0
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx - dy
+        while True:
+            if (x, y) in self.obstacles and (x, y) != a and (x, y) != b:
+                return False
+            if (x, y) == (x1, y1):
+                break
+            e2 = 2 * err
+            if e2 > -dy:
+                err -= dy
+                x += sx
+            if e2 < dx:
+                err += dx
+                y += sy
+        if max_distance is not None:
+            return dx*dx + dy*dy <= max_distance*max_distance
         return True
 
     def query_visible(self, center: Position, radius: int) -> List[Any]:
         """Return entities within *radius* that have direct line-of-sight to *center*."""
         candidates = self.query_radius(center, radius)
         return [e for e in candidates if self.line_of_sight(center, self.positions[e], radius)]
+
+    # ------------------------------------------------------------------
+    # Cone of vision query
+    # ------------------------------------------------------------------
+    def query_cone(self, center: Position, radius: int, facing: Tuple[float,float], fov_deg: float) -> List[Any]:
+        """Return entities within *radius* inside a cone defined by *facing* unit vector and field-of-view angle."""
+        import math
+        facing_x, facing_y = facing
+        norm = math.hypot(facing_x, facing_y)
+        if norm == 0:
+            return []
+        facing_x /= norm
+        facing_y /= norm
+        half_angle = math.radians(fov_deg) / 2
+        cos_limit = math.cos(half_angle)
+        visible = []
+        for ent in self.query_visible(center, radius):
+            pos = self.positions[ent]
+            vec_x, vec_y = pos[0]-center[0], pos[1]-center[1]
+            dist = math.hypot(vec_x, vec_y)
+            if dist == 0:
+                continue
+            vec_x /= dist
+            vec_y /= dist
+            dot = vec_x * facing_x + vec_y * facing_y
+            if dot >= cos_limit:
+                visible.append(ent)
+        return visible
+
+    # ------------------------------------------------------------------
+    # Pathfinding (A*)
+    # ------------------------------------------------------------------
+    def find_path(self, start: Position, goal: Position) -> List[Position]:
+        """Very simple A* ignoring diagonal moves."""
+        from heapq import heappush, heappop
+        open_set: list[tuple[int, Position]] = []
+        heappush(open_set, (0, start))
+        came: Dict[Position, Position | None] = {start: None}
+        g_score: Dict[Position, int] = {start: 0}
+
+        def neighbors(pos: Position):
+            for dx, dy in [(1,0),(-1,0),(0,1),(0,-1)]:
+                nx, ny = pos[0]+dx, pos[1]+dy
+                if 0<=nx<self.width and 0<=ny<self.height and (nx,ny) not in self.obstacles:
+                    yield (nx, ny)
+
+        while open_set:
+            _, current = heappop(open_set)
+            if current == goal:
+                # reconstruct
+                path = []
+                while current is not None:
+                    path.append(current)
+                    current = came[current]
+                return path[::-1]
+            for n in neighbors(current):
+                tentative = g_score[current] + 1
+                if tentative < g_score.get(n, 1e9):
+                    came[n] = current
+                    g_score[n] = tentative
+                    heappush(open_set, (tentative + abs(n[0]-goal[0])+abs(n[1]-goal[1]), n))
+        return []
 
 # Global shared grid ---------------------------------------------------------
 _global_grid: SpatialGrid | None = None
