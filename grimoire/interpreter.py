@@ -2110,6 +2110,16 @@ class GrimoireInterpreter:
                 return loop.resume()
             return 'no game loop'
 
+        def move_entity_builtin(interpreter, arguments):
+            if len(arguments) != 3:
+                raise RuntimeError('move_entity expects (entity_familiar, x, y)')
+            entity, x, y = arguments
+            from grimoire.familiars.entity_familiar import EntityFamiliar
+            if not isinstance(entity, EntityFamiliar):
+                raise RuntimeError('First arg must be Entity familiar')
+            entity.set_position(int(x), int(y))
+            return entity.position
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2151,6 +2161,7 @@ class GrimoireInterpreter:
         self.globals.define('schedule_event', schedule_event_builtin)
         self.globals.define('pause_game', pause_game_builtin)
         self.globals.define('resume_game', resume_game_builtin)
+        self.globals.define('move_entity', move_entity_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""

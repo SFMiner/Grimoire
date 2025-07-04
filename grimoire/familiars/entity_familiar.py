@@ -30,6 +30,17 @@ class EntityFamiliar(_base_cls()):
         self.add_socket("property_input", direction="input")
         self.add_socket("property_output", direction="output")
 
+        # default position (0,0) register in spatial grid
+        from grimoire.game.spatial import get_global_grid
+        self.position = (0, 0)
+        get_global_grid().add_entity(self, self.position)
+
+    # Position helpers
+    def set_position(self, x: int, y: int):
+        from grimoire.game.spatial import get_global_grid
+        self.position = (x, y)
+        get_global_grid().move_entity(self, self.position)
+
     # ------------------------------------------------------------------
     # Socket-driven operations
     # ------------------------------------------------------------------
@@ -53,4 +64,6 @@ class EntityFamiliar(_base_cls()):
     def inquire(self, query: str):
         if query.startswith("prop:"):
             return self.properties_container.get(query[5:])
+        if query == "position":
+            return self.position
         return super().inquire(query)
