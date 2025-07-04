@@ -7,8 +7,10 @@ enabling more expressive and thematically appropriate code.
 """
 
 from enum import Enum, auto
-from typing import Dict, List, Set, Optional
-from .lexer import TokenType
+from typing import Dict, List, Set, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .lexer import TokenType
 
 
 class MagicSchool(Enum):
@@ -48,6 +50,17 @@ class KeywordVariants:
                 MagicSchool.DIVINE: ['prophesy', 'proclaim', 'herald'],
                 MagicSchool.ARCANE: ['divine', 'calculate', 'compute'],
                 MagicSchool.TRICKSTER: ['announce', 'jest', 'mock']
+            },
+            
+            # Property access/mystical getter
+            'EVOKE': {
+                MagicSchool.NEUTRAL: ['evoke', 'get', 'retrieve'],
+                MagicSchool.LIGHT: ['divine', 'illuminate', 'reveal'],
+                MagicSchool.SHADOW: ['extract', 'drain', 'siphon'],
+                MagicSchool.NATURE: ['sense', 'feel', 'perceive'],
+                MagicSchool.DIVINE: ['behold', 'witness', 'receive'],
+                MagicSchool.ARCANE: ['query', 'analyze', 'probe'],
+                MagicSchool.TRICKSTER: ['peek', 'spy', 'discover']
             },
             
             # Function definition
@@ -158,11 +171,11 @@ class KeywordVariants:
                 for keyword in keywords:
                     self.multiword_to_token[keyword] = token_type
     
-    def get_token_type(self, keyword: str) -> Optional[TokenType]:
+    def get_token_type(self, keyword: str) -> Optional['TokenType']:
         """Get the token type for a keyword variant."""
         return self.keyword_to_token.get(keyword)
     
-    def get_multiword_token_type(self, phrase: str) -> Optional[TokenType]:
+    def get_multiword_token_type(self, phrase: str) -> Optional['TokenType']:
         """Get the token type for a multi-word phrase variant."""
         return self.multiword_to_token.get(phrase)
     
@@ -189,11 +202,11 @@ class KeywordVariants:
         """Check if a multi-word phrase is valid in any school."""
         return phrase in self.multiword_to_token
     
-    def get_all_keywords(self) -> Dict[str, TokenType]:
+    def get_all_keywords(self) -> Dict[str, 'TokenType']:
         """Get all single-word keyword mappings."""
         return self.keyword_to_token.copy()
     
-    def get_all_multiwords(self) -> Dict[str, TokenType]:
+    def get_all_multiwords(self) -> Dict[str, 'TokenType']:
         """Get all multi-word phrase mappings."""
         return self.multiword_to_token.copy()
     

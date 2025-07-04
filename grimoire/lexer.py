@@ -31,6 +31,7 @@ class TokenType(Enum):
     SPIRIT = auto()         # Spirit definition (tactical AI)
     ESSENCE = auto()        # Class attribute
     INVOKE = auto()         # Constructor/function call
+    EVOKE = auto()          # Property getter/mystical access
     SCRY = auto()           # Print/output
     TRANSMUTE = auto()      # Type casting
     BANISH = auto()         # Delete
@@ -44,8 +45,10 @@ class TokenType(Enum):
     DISMISS = auto()        # Familiar dismissal
     
     # Control Flow
-    SHOULD = auto()         # if statement
-    LEST = auto()           # else statement
+    IF = auto()             # if statement (standard)
+    SHOULD = auto()         # if statement (magical)
+    ELSE = auto()           # else statement (standard)
+    LEST = auto()           # else statement (magical)
     WHILE_CHARGED = auto()  # while loop
     FOR_EACH = auto()       # for loop start
     ARCANA = auto()         # for loop variable
@@ -139,7 +142,9 @@ class GrimoireLexer:
         'or': TokenType.OR,
         'not': TokenType.NOT,
         'return': TokenType.RETURN,
+        'evoke': TokenType.EVOKE,
         'should': TokenType.SHOULD,
+        'else': TokenType.ELSE,
         'lest': TokenType.LEST,
     }
     
@@ -176,20 +181,22 @@ class GrimoireLexer:
         self._init_keywords()
     
     def _init_keywords(self):
-        """Initialize keyword mappings with support for thematic variants."""
-        try:
-            from .keyword_variants import KEYWORD_VARIANTS
-            
-            # Get all keyword mappings from the variants system
-            variant_keywords = KEYWORD_VARIANTS.get_all_keywords()
-            variant_multiwords = KEYWORD_VARIANTS.get_all_multiwords()
-            
-            # Update our keyword dictionaries to include all variants
-            self.KEYWORDS.update(variant_keywords)
-            self.MULTI_WORD_TOKENS.update(variant_multiwords)
-            
-        except ImportError:
-            # If keyword variants aren't available, use defaults (already defined as class attributes)
+   #    Skip the circular import issue fo rnow -- just use the base keywords
+   #    the KEYWORDS dict already includes 'evoke': TokenType.EVOKE
+   #     """Initialize keyword mappings with support for thematic variants."""
+   #     try:
+   #         from .keyword_variants import KEYWORD_VARIANTS
+   #         
+   #         # Get all keyword mappings from the variants system
+   #         variant_keywords = KEYWORD_VARIANTS.get_all_keywords()
+   #         variant_multiwords = KEYWORD_VARIANTS.get_all_multiwords()
+   #         
+   #         # Update our keyword dictionaries to include all variants
+   #         self.KEYWORDS.update(variant_keywords)
+   #         self.MULTI_WORD_TOKENS.update(variant_multiwords)
+   #         
+   #     except ImportError:
+   #         # If keyword variants aren't available, use defaults (already defined as class attributes)
             pass
     
     def scan_tokens(self) -> List[Token]:
