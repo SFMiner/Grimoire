@@ -5,6 +5,7 @@ A magical programming language designed for game development with hierarchical a
 ## ✨ Features
 
 - **🤖 Hierarchical Agent System**: Three-tier AI architecture (Archons → Spirits → Familiars)
+- **🏷️ Dual Terminology System**: Choose between technical (`tags`) or mystical (`marks`) terminology
 - **🤝 Immutable Pact System**: Secure, black-box agreements with true name authentication
 - **📊 Familiar Wrangler**: Centralized monitoring and debugging for agent activities
 - **🎯 Goal-Oriented AI**: Priority-based decision making with emergent behaviors
@@ -129,13 +130,81 @@ Familiar (Operational AI)
 └── Behaviors: Reactive and proactive actions
 ```
 
+## 🏷️ Dual Terminology System
+
+Grimoire supports both **technical** and **mystical** terminology, allowing you to choose the style that fits your preference:
+
+### Technical Approach (Conventional)
+```python
+# Create and tag entities
+warrior = TaggedEntity("Warrior", "familiar")
+warrior.add_tag(create_tag("domain", "combat"))
+warrior.add_tag(create_tag("ability", "damage"))
+
+# Query entities
+combat_units = query_by_tags(["domain:combat"])
+compatible = find_compatible(warrior)
+
+# Agent creation
+spirit = create_spirit("BattleSpirit", "combat")
+familiar = create_familiar("warrior")
+```
+
+### Mystical Approach (Immersive)
+```python
+# Create and mark entities  
+warrior = MarkedEntity("Warrior", "familiar")
+warrior.mark(create_mark("domain", "combat"))
+warrior.mark(create_mark("ability", "damage"))
+
+# Seek entities
+combat_units = seek_mark(["domain:combat"])
+compatible = seek_match(warrior)
+
+# Agent conjuring
+spirit = conjure_spirit("BattleSpirit", "combat")
+familiar = conjure_familiar("warrior")
+```
+
+### Mixed Approach (Flexible)
+```python
+# Mix and match as preferred
+warrior = TaggedEntity("Warrior", "familiar")
+warrior.mark(create_tag("domain", "combat"))  # Mixed methods
+results = seek_mark(["domain:combat"])        # Mixed queries
+
+# Check capabilities both ways
+can_fight = warrior.has_capability("damage")  # Technical
+may_fight = warrior.may("damage")             # Mystical (same result)
+```
+
+### Complete Terminology Mapping
+
+| Technical | Mystical | Purpose |
+|-----------|----------|---------|
+| `Tag` | `Mark` | Entity attributes |
+| `TaggedEntity` | `MarkedEntity` | Tagged entities |
+| `add_tag()` | `mark()` | Add attributes |
+| `has_tag()` | `bears_mark()` | Check attributes |
+| `has_capability()` | `may()` | Check abilities |
+| `query_by_tags()` | `seek_mark()` | Find entities |
+| `find_compatible()` | `seek_match()` | Find matches |
+| `create_familiar` | `conjure_familiar` | Create agents |
+| `create_spirit` | `conjure_spirit` | Create spirits |
+| `create_archon` | `conjure_archon` | Create archons |
+
+Both terminologies are **completely equivalent** with zero performance difference!
+
 ## 🤝 Pact System
 
 ### Immutable Agreements
 
 ```grimoire
-# Create a patrol pact
+# Create a patrol pact (technical)
 create_familiar_with_pact("guard", "patrol_walls")
+
+# Create a patrol pact (mystical)
+conjure_familiar_with_pact("guard", "patrol_walls")
 
 # Invoke pact behavior
 invoke_pact("guard", "patrol_walls")
@@ -316,6 +385,7 @@ grimoire --interactive
 - `functions` - Built-in functions
 - `agents` - Hierarchical agent system
 - `pacts` - Immutable pact system
+- `terminology` - Dual terminology system (tags vs marks)
 - `syntax` - Basic language syntax
 - `examples` - Code examples
 - `debugging` - Debugging guide

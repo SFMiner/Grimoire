@@ -32,7 +32,7 @@ from .parser import (
     Program, Statement, Expression, ASTNode,
     LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression,
     CallExpression, PropertyAccessExpression, ConjureExpression, PortalExpression,
-    PropertyAssignmentExpression, ExpressionStatement, BindStatement, ScryStatement,
+    PropertyAssignmentExpression, TagLiteralExpression, ExpressionStatement, BindStatement, ScryStatement,
     IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
     BreakStatement, ContinueStatement,
     RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
@@ -2356,6 +2356,11 @@ class GrimoireInterpreter:
         self.globals.define("create_ai_familiar", create_ai_familiar_builtin)
         self.globals.define("create_archon", create_archon_builtin)
         self.globals.define("create_spirit", create_spirit_builtin)
+        
+        # Conjure aliases for mystical terminology
+        self.globals.define("conjure_familiar", create_entity_familiar_builtin)
+        self.globals.define("conjure_spirit", create_spirit_builtin)
+        self.globals.define("conjure_archon", create_archon_builtin)
         self.globals.define("autonomous_update", autonomous_update_builtin)
         
         # Wrangler functions
@@ -2372,6 +2377,9 @@ class GrimoireInterpreter:
         
         # Pact system functions
         self.globals.define("create_familiar_with_pact", create_familiar_with_pact_builtin)
+        
+        # Conjure pact alias for mystical terminology
+        self.globals.define("conjure_familiar_with_pact", create_familiar_with_pact_builtin)
         self.globals.define("invoke_pact", invoke_pact_builtin)
         self.globals.define("revoke_pact", revoke_pact_builtin)
         self.globals.define("oversee_domain", oversee_domain_builtin)
@@ -2934,6 +2942,11 @@ class GrimoireInterpreter:
                     raise RuntimeError("Only instances have properties")
             else:
                 raise RuntimeError("Invalid assignment target")
+        
+        elif isinstance(expression, TagLiteralExpression):
+            # Handle tag literals ($TAG(category:value))
+            from .tag_system import create_tag
+            return create_tag(expression.category, expression.value)
         
         else:
             raise RuntimeError(f"Unknown expression type: {type(expression)}")
