@@ -25,7 +25,7 @@ and integration mixins.
 """
 
 from .base import BaseAnomaly, CompositeAnomaly, AdaptiveAnomaly, AnomalyReport
-from .registry import AnomalyRegistry, anomaly_registry
+from .registry import AnomalyRegistry, anomaly_registry, get_anomaly, get_anomaly_set, register_anomaly
 from .mixins import (
     AnomalyDetectorMixin, 
     ContextAwareAnomalyMixin,
@@ -45,6 +45,9 @@ __all__ = [
     # Registry
     "AnomalyRegistry",
     "anomaly_registry",
+    "get_anomaly",
+    "get_anomaly_set", 
+    "register_anomaly",
     
     # Mixins
     "AnomalyDetectorMixin",

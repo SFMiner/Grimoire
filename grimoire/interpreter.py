@@ -45,6 +45,7 @@ from .ai_system import (
     create_utility_functions_for_agent
 )
 from .planes import PlaneManager, PlaneProperties, PlaneType, get_plane_manager
+from .containers import Tome, Grimoire, Codex, Chronicle, Vault
 
 
 # =============================================================================
@@ -2645,6 +2646,58 @@ class GrimoireInterpreter:
         self.globals.define("set_mark", set_mark_builtin)
         self.globals.define("seek_mark", seek_mark_builtin)
         self.globals.define("register_tagged_entity", register_tagged_entity_builtin)
+        
+        # =====================================================================
+        # Container System Built-ins
+        # =====================================================================
+        
+        def create_tome_builtin(interpreter, arguments):
+            """Create a new tome (array/list) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, list):
+                raise RuntimeError("create_tome expects optional list argument")
+            return Tome(initial_data)
+        
+        def create_grimoire_builtin(interpreter, arguments):
+            """Create a new grimoire (dictionary/map) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, dict):
+                raise RuntimeError("create_grimoire expects optional dict argument")
+            return Grimoire(initial_data)
+        
+        def create_codex_builtin(interpreter, arguments):
+            """Create a new codex (set) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, (list, set)):
+                raise RuntimeError("create_codex expects optional list or set argument")
+            # Convert list to set if needed
+            if isinstance(initial_data, list):
+                initial_data = set(initial_data)
+            return Codex(initial_data)
+        
+        def create_chronicle_builtin(interpreter, arguments):
+            """Create a new chronicle (ordered list) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, list):
+                raise RuntimeError("create_chronicle expects optional list argument")
+            return Chronicle(initial_data)
+        
+        def create_vault_builtin(interpreter, arguments):
+            """Create a new vault (immutable tuple) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, (list, tuple)):
+                raise RuntimeError("create_vault expects optional list or tuple argument")
+            # Convert list to tuple if needed
+            if isinstance(initial_data, list):
+                initial_data = tuple(initial_data)
+            return Vault(initial_data)
+        
+        # Register container system built-ins
+        self.globals.define("create_tome", create_tome_builtin)
+        self.globals.define("create_grimoire", create_grimoire_builtin)
+        self.globals.define("create_codex", create_codex_builtin)
+        self.globals.define("create_chronicle", create_chronicle_builtin)
+        self.globals.define("create_vault", create_vault_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
