@@ -241,6 +241,11 @@ class TagSet:
             self._update_category_index(tag, add=True)
             return True
     
+    # Mark aliases for mystical terminology
+    def mark(self, tag: Tag) -> bool:
+        """Alias for add_tag using mystical terminology."""
+        return self.add_tag(tag)
+    
     def remove_tag(self, tag_pattern: str) -> int:
         """
         Remove tags matching a pattern.
@@ -264,6 +269,10 @@ class TagSet:
             
             return len(to_remove)
     
+    def unmark(self, tag_pattern: str) -> int:
+        """Alias for remove_tag using mystical terminology."""
+        return self.remove_tag(tag_pattern)
+    
     def has_tag(self, pattern: str) -> bool:
         """
         Check if any tag in the set matches the pattern.
@@ -276,6 +285,10 @@ class TagSet:
         """
         with self._lock:
             return any(tag.matches(pattern) for tag in self.tags.values())
+    
+    def bears_mark(self, pattern: str) -> bool:
+        """Alias for has_tag using mystical terminology."""
+        return self.has_tag(pattern)
     
     def get_tags_by_category(self, category: TagCategory) -> List[Tag]:
         """
@@ -702,3 +715,30 @@ def create_strategic_archon_tags() -> TagSet:
             .add_custom(TagCategory.TYPE, "archon")
             .add_custom(TagCategory.SPECIALTY, "strategy")
             .build())
+
+
+# =============================================================================
+# MARK SYSTEM ALIASES - Mystical Terminology
+# =============================================================================
+
+# Category alias
+MarkCategory = TagCategory
+
+# Class aliases
+Mark = Tag
+MarkSet = TagSet
+CommonMarks = CommonTags
+MarkSetBuilder = TagSetBuilder
+
+# Function aliases for mystical terminology
+def create_mark(category: str, value: str, **kwargs) -> Tag:
+    """Alias for create_tag using mystical terminology."""
+    return create_tag(category, value, **kwargs)
+
+def parse_mark_string(mark_string: str) -> Tag:
+    """Alias for parse_tag_string using mystical terminology."""
+    return parse_tag_string(mark_string)
+
+def create_mark_set_from_strings(mark_strings: List[str]) -> TagSet:
+    """Alias for create_tag_set_from_strings using mystical terminology."""
+    return create_tag_set_from_strings(mark_strings)

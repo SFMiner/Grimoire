@@ -1,0 +1,16 @@
+# Test script for conjure aliases in Grimoire
+scry $SCROLL(Testing conjure aliases...)
+
+# Test conjure_familiar (alias for create_entity_familiar)
+bind mystic_warrior = conjure_familiar upon $SCROLL(MysticWarrior)
+scry $SCROLL(Conjured familiar: ) added to mystic_warrior
+
+# Test conjure_spirit (alias for create_spirit)  
+bind healing_spirit = conjure_spirit upon $SCROLL(HealingSpirit) upon $SCROLL(healer)
+scry $SCROLL(Conjured spirit: ) added to healing_spirit
+
+# Test conjure_archon (alias for create_archon)
+bind war_archon = conjure_archon upon $SCROLL(WarArchon) upon $SCROLL(combat)
+scry $SCROLL(Conjured archon: ) added to war_archon
+
+scry $SCROLL(All conjure aliases working successfully!)

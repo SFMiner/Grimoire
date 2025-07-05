@@ -118,6 +118,23 @@ class TaggedEntity:
         """Check if entity has a specific capability."""
         return self.tags.has_tag(f"ability:{capability}")
     
+    # Mark aliases for mystical terminology
+    def mark(self, tag: Tag) -> bool:
+        """Alias for add_tag using mystical terminology."""
+        return self.add_tag(tag)
+    
+    def unmark(self, tag_pattern: str) -> int:
+        """Alias for remove_tag using mystical terminology."""
+        return self.remove_tag(tag_pattern)
+    
+    def bears_mark(self, pattern: str) -> bool:
+        """Alias for has_tag using mystical terminology."""
+        return self.has_tag(pattern)
+    
+    def may(self, capability: str) -> bool:
+        """Alias for has_capability using mystical terminology."""
+        return self.has_capability(capability)
+    
     def can_interact_with(self, other: 'TaggedEntity') -> bool:
         """
         Check if this entity can interact with another.
@@ -747,3 +764,48 @@ def suggest_tags(entity: TaggedEntity, **kwargs) -> List[Tuple[Tag, float]]:
 def get_registry_stats() -> Dict[str, Any]:
     """Get statistics from the global registry."""
     return tag_registry.get_tag_statistics()
+
+
+# =============================================================================
+# MARK SYSTEM ALIASES - Mystical Terminology
+# =============================================================================
+
+# Class aliases
+MarkedEntity = TaggedEntity
+MarkRegistry = TagRegistry
+
+# Global registry alias
+mark_registry = tag_registry
+
+# Function aliases for mystical terminology
+def seek_mark(required_marks: List[str], **kwargs) -> List[TaggedEntity]:
+    """Alias for query_by_tags using mystical terminology."""
+    return query_by_tags(required_marks, **kwargs)
+
+def seek_match(entity: TaggedEntity, **kwargs) -> List[Tuple[TaggedEntity, float]]:
+    """Alias for find_compatible using mystical terminology."""
+    return find_compatible(entity, **kwargs)
+
+def seek_matches(entity: TaggedEntity, **kwargs) -> List[Tuple[TaggedEntity, float]]:
+    """Alias for find_compatible_entities using mystical terminology."""
+    return find_compatible(entity, **kwargs)
+
+def gather_kind(entity_type: str) -> List[TaggedEntity]:
+    """Alias for get_entities_by_type using mystical terminology."""
+    return get_entities_by_type(entity_type)
+
+def how_matched(entity1: TaggedEntity, entity2: TaggedEntity) -> float:
+    """Check compatibility between two entities using mystical terminology."""
+    return entity1.get_interaction_score(entity2)
+
+def suggest_marks(entity: TaggedEntity, **kwargs) -> List[Tuple[Tag, float]]:
+    """Alias for suggest_tags using mystical terminology."""
+    return suggest_tags(entity, **kwargs)
+
+def has_power(entity: TaggedEntity) -> List[str]:
+    """Get entity capabilities using mystical terminology."""
+    capabilities = []
+    for tag in entity.tags:
+        if tag.category.value == "ability":
+            capabilities.append(tag.value)
+    return capabilities

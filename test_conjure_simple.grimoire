@@ -1,0 +1,16 @@
+# Simple test for conjure aliases
+scry $SCROLL(Testing basic conjure functionality...)
+
+# Test basic summoning (this should work)
+bind basic_familiar = summon upon $SCROLL(MemoryImp) upon $SCROLL(TestMemory)
+scry $SCROLL(Summoned: ) added to basic_familiar
+
+# Test conjure_spirit
+bind healing_spirit = conjure_spirit upon $SCROLL(HealingSpirit) upon $SCROLL(healer)
+scry $SCROLL(Conjured spirit: ) added to healing_spirit
+
+# Test conjure_archon  
+bind war_archon = conjure_archon upon $SCROLL(WarArchon) upon $SCROLL(combat)
+scry $SCROLL(Conjured archon: ) added to war_archon
+
+scry $SCROLL(Conjure aliases test complete!)
