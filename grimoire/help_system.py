@@ -481,6 +481,67 @@ TIPS:
     • Build incrementally
 """,
 
+    'terminology': """
+🎭 Grimoire Dual Terminology System:
+
+OVERVIEW:
+    Grimoire supports both TECHNICAL and MYSTICAL terminology,
+    allowing you to choose the style that fits your preference!
+
+TERMINOLOGY STYLES:
+    TECHNICAL (Conventional Programming):
+        • Tag, TaggedEntity, TagSet
+        • add_tag(), has_tag(), query_by_tags()
+        • create_familiar, create_spirit, create_archon
+        
+    MYSTICAL (Immersive Magical Programming):
+        • Mark, MarkedEntity, MarkSet  
+        • mark(), bears_mark(), seek_mark()
+        • conjure_familiar, conjure_spirit, conjure_archon
+
+COMPLETE MAPPING:
+    Technical              Mystical               Purpose
+    --------              --------               -------
+    Tag                   Mark                   Entity attribute
+    TaggedEntity          MarkedEntity           Tagged entity
+    add_tag()             mark()                 Add attribute
+    has_tag()             bears_mark()           Check attribute
+    has_capability()      may()                  Check ability
+    query_by_tags()       seek_mark()            Find entities
+    find_compatible()     seek_match()           Find matches
+    create_familiar       conjure_familiar       Create agent
+    create_spirit         conjure_spirit         Create spirit
+    create_archon         conjure_archon         Create archon
+
+USAGE EXAMPLES:
+    # Technical approach
+    warrior = TaggedEntity("Warrior", "familiar")
+    warrior.add_tag(create_tag("domain", "combat"))
+    results = query_by_tags(["domain:combat"])
+    
+    # Mystical approach
+    warrior = MarkedEntity("Warrior", "familiar")
+    warrior.mark(create_mark("domain", "combat"))
+    results = seek_mark(["domain:combat"])
+    
+    # Mixed approach (both work together!)
+    warrior = TaggedEntity("Warrior", "familiar")
+    warrior.mark(create_mark("domain", "combat"))
+    results = seek_mark(["domain:combat"])
+
+KEY BENEFITS:
+    • ZERO performance difference
+    • Complete feature parity
+    • Full backward compatibility
+    • Mix and match freely
+    • Choose your style!
+
+WHEN TO USE:
+    Technical: Enterprise, integration, documentation
+    Mystical: Games, creative coding, immersive projects
+    Mixed: Migration, team preferences, context-based
+""",
+
     'advanced': """
 ⚡ Advanced Grimoire Features:
 
