@@ -35,6 +35,18 @@ except ImportError:
     # Fallback for testing
     from grimoire.interpreter import GrimoireFamiliar
 
+# Import tag system for integration
+try:
+    from ..tag_system import Tag, TagSet, create_tag
+    from ..tag_registry import TaggedEntity, tag_registry
+    TAG_SYSTEM_AVAILABLE = True
+except ImportError:
+    TAG_SYSTEM_AVAILABLE = False
+    # Create dummy classes if tag system not available
+    class TaggedEntity:
+        def __init__(self, name: str, entity_type: str, tags=None):
+            pass
+
 from . import register_familiar_class
 from .types import FamiliarType, FamiliarCapability
 from .messaging import FamiliarMessage, MessageType, create_property_update_message, get_global_router
@@ -64,6 +76,7 @@ class EntityFamiliar(GrimoireFamiliar):
     - State persistence and snapshots
     - Property watchers and event handling
     - Socket-based property synchronization
+    - Tag system integration (if available)
     """
     
     def __init__(self, name: str):
@@ -86,6 +99,14 @@ class EntityFamiliar(GrimoireFamiliar):
         # State management
         self.state_snapshots: List[Dict[str, Any]] = []
         self.max_snapshots = 10
+        
+        # Tag system integration
+        if TAG_SYSTEM_AVAILABLE:
+            self.tag_set = TagSet()
+            # Register this familiar as a tagged entity
+            tag_registry.register_entity(self)
+        else:
+            self.tag_set = None
         
         # Socket setup for property notifications
         self.setup_property_sockets()
