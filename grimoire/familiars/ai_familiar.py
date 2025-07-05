@@ -141,12 +141,22 @@ class AIFamiliar(GrimoireFamiliar):
         self.decision_history: List[Decision] = []
         self.max_decision_history = 100
         
+        # Autonomous loop control
+        self.autonomous_enabled = True
+        self.autonomous_interval = 1.0  # seconds between autonomous updates
+        self.last_autonomous_update = 0.0
+        
+        # Goal artifact integration
+        self.use_global_goal_registry = True
+        
         # AI configuration
         config = ai_config or {}
         self.decision_threshold = config.get('decision_threshold', 0.7)
         self.exploration_rate = config.get('exploration_rate', 0.1)
         self.learning_rate = config.get('learning_rate', 0.05)
         self.planning_horizon = config.get('planning_horizon', 5)
+        self.autonomous_enabled = config.get('autonomous_enabled', True)
+        self.autonomous_interval = config.get('autonomous_interval', 1.0)
         
         # Auto-create standard sockets based on specification
         self._setup_default_sockets()
@@ -228,7 +238,54 @@ class AIFamiliar(GrimoireFamiliar):
         )
         self.actions.append(explore_action)
     
-    def add_goal(self, goal: Goal) -> None:
+    def sync_with_global_goals(self) -> None:
+        """Synchronize with global goal registry if enabled."""
+        if not self.use_global_goal_registry:
+            return
+        
+        from grimoire.goals import get_registered_goals
+        
+        # Get global goals
+        global_goals = get_registered_goals()
+        
+        # Add any missing global goals
+        current_goal_names = {goal.name for goal in self.goals}
+        for goal_name, goal_artifact in global_goals.items():
+            if goal_name not in current_goal_names:
+                self.goals.append(goal_artifact)
+                self.log_activity(
+                    "self",
+                    f"Added global goal: {goal_name}",
+                    {"priority": goal_artifact.priority}
+                )
+    
+    def should_autonomous_update(self) -> bool:
+        """Check if it's time for an autonomous update."""
+        if not self.autonomous_enabled:
+            return False
+        
+        current_time = self.get_current_time()
+        return (current_time - self.last_autonomous_update) >= self.autonomous_interval
+    
+    def set_autonomous_enabled(self, enabled: bool) -> None:
+        """Enable or disable autonomous updates."""
+        self.autonomous_enabled = enabled
+        self.log_activity(
+            "self",
+            f"Autonomous updates {'enabled' if enabled else 'disabled'}",
+            {"previous_state": not enabled}
+        )
+    
+    def set_autonomous_interval(self, interval: float) -> None:
+        """Set the interval between autonomous updates."""
+        self.autonomous_interval = max(0.1, interval)  # Minimum 0.1 seconds
+        self.log_activity(
+            "self",
+            f"Autonomous interval set to {self.autonomous_interval}s",
+            {"previous_interval": getattr(self, '_prev_autonomous_interval', 1.0)}
+        )
+
+    def add_goal(self, goal: Union[Goal, GoalArtifact]) -> None:
         """Add a new goal to the AI system."""
         self.goals.append(goal)
         # If a GoalArtifact, also register globally for debugging
@@ -237,7 +294,7 @@ class AIFamiliar(GrimoireFamiliar):
         self.log_activity(
             "self",
             f"Goal added: {goal.name}",
-            {"priority": goal.priority, "domain": goal.domain}
+            {"priority": goal.priority, "domain": getattr(goal, 'domain', 'unknown')}
         )
     
     def remove_goal(self, goal_name: str) -> bool:
@@ -473,10 +530,30 @@ class AIFamiliar(GrimoireFamiliar):
     
     def autonomous_update(self) -> None:
         """Perform autonomous AI update cycle."""
+        if not self.should_autonomous_update():
+            return
+        
+        current_time = self.get_current_time()
+        self.last_autonomous_update = current_time
+        
         if self.state != "active":
             return
         
         self.log_activity("self", "Starting AI autonomous update", {})
+        
+        # Synchronize with global goal registry
+        self.sync_with_global_goals()
+        
+        # Update world model from global world state
+        try:
+            global_state = self.world_state.to_dict()
+            self.update_world_model(global_state)
+        except Exception as e:
+            self.log_activity(
+                "self",
+                f"Failed to sync with global world state: {e}",
+                {"error": str(e)}
+            )
         
         # Receive world state updates from socket
         if self.has_socket("world_state_input"):
@@ -512,18 +589,41 @@ class AIFamiliar(GrimoireFamiliar):
         # Evaluate current goals
         goal_satisfactions = self.evaluate_goals()
         
-        # Make decision
+        # Log goal satisfaction changes
+        for goal_name, satisfaction in goal_satisfactions.items():
+            self.log_activity(
+                "self",
+                f"Goal satisfaction: {goal_name} = {satisfaction:.3f}",
+                {"goal": goal_name, "satisfaction": satisfaction}
+            )
+        
+        # Make decision based on current state
         decision = self.make_decision()
         
         if decision:
             # Execute decision
             new_world_state = self.execute_decision(decision)
             self.update_world_model(new_world_state)
+            
+            # Update global world state if decision had effects
+            try:
+                self.world_state.update(new_world_state)
+            except Exception as e:
+                self.log_activity(
+                    "self",
+                    f"Failed to update global world state: {e}",
+                    {"error": str(e)}
+                )
         
         self.log_activity(
             "self",
             "AI autonomous update completed",
-            {"goals_evaluated": len(self.goals), "decision_made": decision is not None}
+            {
+                "goals_evaluated": len(self.goals),
+                "decision_made": decision is not None,
+                "world_model_size": len(self.world_model),
+                "next_update_in": self.autonomous_interval
+            }
         )
     
     def get_ai_status(self) -> Dict[str, Any]:

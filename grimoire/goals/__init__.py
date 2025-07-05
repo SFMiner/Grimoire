@@ -21,6 +21,9 @@ from grimoire.world_state import WorldState, get_world_state
 __all__ = [
     "GoalArtifact",
     "register_goal",
+    "register_goal_artifact",
+    "get_goal_artifact", 
+    "list_goal_artifacts",
 ]
 
 
@@ -30,6 +33,29 @@ _goal_registry: Dict[str, "GoalArtifact"] = {}
 def register_goal(goal: "GoalArtifact") -> None:
     """Register a goal instance globally so AI familiars can discover it."""
     _goal_registry[goal.name] = goal
+
+
+def register_goal_artifact(name: str, goal_instance: Any, urgency_weight: float = 1.0, satisfaction_threshold: float = 1.0) -> None:
+    """Register a goal artifact instance with custom parameters."""
+    if hasattr(goal_instance, 'name'):
+        goal_instance.name = name
+    if hasattr(goal_instance, 'priority'):
+        goal_instance.priority = urgency_weight
+    if hasattr(goal_instance, 'target_satisfaction'):
+        goal_instance.target_satisfaction = satisfaction_threshold
+    
+    _goal_registry[name] = goal_instance
+
+
+def get_goal_artifact(name: str) -> Optional["GoalArtifact"]:
+    """Get a registered goal artifact by name."""
+    return _goal_registry.get(name)
+
+
+def list_goal_artifacts() -> Dict[str, Any]:
+    """List all registered goal artifacts."""
+    return {name: {"priority": goal.priority, "target_satisfaction": goal.target_satisfaction} 
+            for name, goal in _goal_registry.items()}
 
 
 def get_registered_goals() -> Dict[str, "GoalArtifact"]:

@@ -2131,6 +2131,95 @@ class GrimoireInterpreter:
             fam.add_custom_goal(MoveToGoal(target, int(radius)))  # type: ignore[attr-defined]
             return 'move-to goal added'
 
+        # Phase 3: Goal Artifacts and World State
+        def define_goal_builtin(interpreter, arguments):
+            if len(arguments) < 2:
+                raise RuntimeError("define_goal expects (name, artifact_class, [urgency_weight], [satisfaction_threshold])")
+            
+            name = arguments[0]
+            artifact_class = arguments[1]
+            urgency_weight = arguments[2] if len(arguments) > 2 else 1.0
+            satisfaction_threshold = arguments[3] if len(arguments) > 3 else 1.0
+            
+            from grimoire.goals import register_goal_artifact
+            
+            # Create instance of goal artifact
+            if isinstance(artifact_class, GrimoireClass):
+                goal_instance = artifact_class.call(interpreter, [])
+            else:
+                raise RuntimeError("Second argument must be a goal artifact class")
+            
+            # Register the goal artifact
+            register_goal_artifact(name, goal_instance, urgency_weight, satisfaction_threshold)
+            return f"Goal artifact '{name}' defined"
+
+        def get_world_state_builtin(interpreter, arguments):
+            if len(arguments) == 0:
+                # Return all world state
+                from grimoire.world_state import WorldState
+                return WorldState.get_instance().get_all_state()
+            elif len(arguments) == 1:
+                # Return specific key
+                from grimoire.world_state import WorldState
+                key = arguments[0]
+                return WorldState.get_instance().get_state(key)
+            else:
+                raise RuntimeError("get_world_state expects 0 or 1 arguments")
+
+        def set_world_state_builtin(interpreter, arguments):
+            if len(arguments) != 2:
+                raise RuntimeError("set_world_state expects (key, value)")
+            
+            key, value = arguments
+            from grimoire.world_state import WorldState
+            WorldState.get_instance().set_state(key, value)
+            return f"World state '{key}' set to {value}"
+
+        def subscribe_world_state_builtin(interpreter, arguments):
+            if len(arguments) != 2:
+                raise RuntimeError("subscribe_world_state expects (key, callback)")
+            
+            key, callback = arguments
+            from grimoire.world_state import WorldState
+            
+            if not callable(callback):
+                raise RuntimeError("Second argument must be a callable")
+            
+            WorldState.get_instance().subscribe(key, callback)
+            return f"Subscribed to world state changes for '{key}'"
+
+        def evaluate_goal_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("evaluate_goal expects (goal_name)")
+            
+            goal_name = arguments[0]
+            from grimoire.goals import get_goal_artifact
+            
+            goal = get_goal_artifact(goal_name)
+            if not goal:
+                raise RuntimeError(f"Goal '{goal_name}' not found")
+            
+            # Use evaluate() method instead of is_satisfied()
+            from grimoire.world_state import WorldState
+            return goal.evaluate(WorldState.get_instance())
+
+        def get_goal_urgency_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("get_goal_urgency expects (goal_name)")
+            
+            goal_name = arguments[0]
+            from grimoire.goals import get_goal_artifact
+            
+            goal = get_goal_artifact(goal_name)
+            if not goal:
+                raise RuntimeError(f"Goal '{goal_name}' not found")
+            
+            return goal.get_urgency()
+
+        def list_goals_builtin(interpreter, arguments):
+            from grimoire.goals import list_goal_artifacts
+            return list_goal_artifacts()
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2174,6 +2263,13 @@ class GrimoireInterpreter:
         self.globals.define('resume_game', resume_game_builtin)
         self.globals.define('move_entity', move_entity_builtin)
         self.globals.define('add_move_to_goal', add_move_to_goal_builtin)
+        self.globals.define("define_goal", define_goal_builtin)
+        self.globals.define("get_world_state", get_world_state_builtin)
+        self.globals.define("set_world_state", set_world_state_builtin)
+        self.globals.define("subscribe_world_state", subscribe_world_state_builtin)
+        self.globals.define("evaluate_goal", evaluate_goal_builtin)
+        self.globals.define("get_goal_urgency", get_goal_urgency_builtin)
+        self.globals.define("list_goals", list_goals_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""

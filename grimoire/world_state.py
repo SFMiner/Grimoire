@@ -43,6 +43,23 @@ class WorldState:
     # ------------------------------------------------------------------
     # Core kv helpers
     # ------------------------------------------------------------------
+    @classmethod
+    def get_instance(cls) -> "WorldState":
+        """Get the singleton instance."""
+        return cls()
+
+    def get_state(self, key: str, default: Any = None) -> Any:
+        """Get a state value by key."""
+        return self.get(key, default)
+
+    def set_state(self, key: str, value: Any) -> None:
+        """Set a state value by key."""
+        self.set(key, value)
+
+    def get_all_state(self) -> Dict[str, Any]:
+        """Get all state as a dictionary."""
+        return self.to_dict()
+
     def get(self, key: str, default: Any = None) -> Any:  # noqa: D401
         return self._data.get(key, default)
 
