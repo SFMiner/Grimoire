@@ -360,7 +360,7 @@ Grimoire supports thematic keyword variants for different magical schools:
 
 ## 📄 License
 
-MIT License - see LICENSE file for details.
+GPLv3 License - see LICENSE file for details.
 
 ## 🌟 Credits
 
