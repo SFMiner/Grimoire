@@ -1,0 +1,132 @@
+# Grimoire Tag System Example
+# Demonstrates the revolutionary tag-based entity system
+
+# Create tag literals for common entity attributes
+bind combat_domain = $TAG(domain:combat)
+bind healing_ability = $TAG(ability:healing)
+bind leader_role = $TAG(role:leader)
+bind active_status = $TAG(status:active)
+
+# Create a combat spirit with tags
+bind battle_spirit = create_spirit upon $SCROLL(BattleLeader),
+    tags: [$TAG(domain:combat), $TAG(role:leader), $TAG(ability:command), $TAG(behavior:strategic)]
+
+# Create healing familiars with different specializations
+bind field_medic = create_familiar upon $SCROLL(FieldMedic),
+    tags: [$TAG(domain:support), $TAG(ability:healing), $TAG(behavior:helpful), $TAG(priority:high)]
+
+bind combat_medic = create_familiar upon $SCROLL(CombatMedic),
+    tags: [$TAG(domain:combat), $TAG(ability:healing), $TAG(ability:damage), $TAG(behavior:adaptive)]
+
+# Create warrior familiars with different roles
+bind tank = create_familiar upon $SCROLL(Tank),
+    tags: [$TAG(domain:combat), $TAG(role:specialist), $TAG(ability:defense), $TAG(behavior:defensive)]
+
+bind damage_dealer = create_familiar upon $SCROLL(Assassin),
+    tags: [$TAG(domain:combat), $TAG(role:specialist), $TAG(ability:damage), $TAG(behavior:aggressive)]
+
+# Query entities by tags - find all healers
+bind all_healers = query_by_tags upon [$TAG(ability:healing), $TAG(status:active)]
+scry $SCROLL("Found healers: ") + all_healers.length
+
+# Find combat entities that can also heal (versatile units)
+bind combat_healers = query_by_tags upon [$TAG(domain:combat), $TAG(ability:healing)]
+scry $SCROLL("Combat healers: ") + combat_healers.length
+
+# Find entities compatible with the battle spirit
+bind compatible_with_leader = find_compatible upon battle_spirit, min_compatibility: 0.6
+scry $SCROLL("Entities compatible with battle leader: ") + compatible_with_leader.length
+
+# Demonstrate emergent behavior - automatic team formation
+ritual form_healing_team():
+    # Find a healing leader
+    bind healing_leaders = query_by_tags upon [$TAG(ability:healing), $TAG(role:leader)]
+    
+    if healing_leaders.length is greater than 0:
+        bind team_leader = healing_leaders[0]
+        
+        # Find compatible support units
+        bind support_units = find_compatible upon team_leader, min_compatibility: 0.5
+        
+        # Filter for actual healers
+        bind team_healers = query_by_tags upon [$TAG(ability:healing)], 
+            from_list: support_units
+        
+        scry $SCROLL("Formed healing team with ") + team_healers.length + $SCROLL(" members")
+        return team_healers
+    
+    scry $SCROLL("No healing leaders available")
+    return []
+
+# Demonstrate priority-based task assignment
+ritual assign_healing_priority():
+    # Find wounded entities (would be set by game logic)
+    bind wounded = query_by_tags upon [$TAG(status:wounded)]
+    
+    # Find available healers
+    bind healers = query_by_tags upon [$TAG(ability:healing), $TAG(status:active)]
+    
+    for each arcana wounded_entity in wounded:
+        # Find best healer for this entity
+        bind compatible_healers = find_compatible upon wounded_entity, 
+            from_list: healers,
+            min_compatibility: 0.4
+        
+        if compatible_healers.length is greater than 0:
+            bind assigned_healer = compatible_healers[0]
+            scry $SCROLL("Assigned ") + assigned_healer.name + $SCROLL(" to heal ") + wounded_entity.name
+        else:
+            scry $SCROLL("No compatible healer found for ") + wounded_entity.name
+
+# Demonstrate tag-based conditional logic
+ritual check_entity_capabilities(entity):
+    scry $SCROLL("Analyzing capabilities of ") + entity.name
+    
+    # Check domain specialization
+    if entity has_tag($TAG(domain:combat)):
+        scry $SCROLL("  - Combat specialist")
+    
+    if entity has_tag($TAG(domain:support)):
+        scry $SCROLL("  - Support specialist")
+    
+    # Check abilities
+    if entity has_tag($TAG(ability:healing)):
+        scry $SCROLL("  - Can heal others")
+    
+    if entity has_tag($TAG(ability:damage)):
+        scry $SCROLL("  - Can deal damage")
+    
+    if entity has_tag($TAG(ability:command)):
+        scry $SCROLL("  - Can lead others")
+    
+    # Check behavior traits
+    if entity has_tag($TAG(behavior:aggressive)):
+        scry $SCROLL("  - Aggressive fighter")
+    
+    if entity has_tag($TAG(behavior:defensive)):
+        scry $SCROLL("  - Defensive protector")
+    
+    if entity has_tag($TAG(behavior:adaptive)):
+        scry $SCROLL("  - Adaptive strategist")
+
+# Main execution
+ritual main():
+    scry $SCROLL("=== Grimoire Tag System Demonstration ===")
+    
+    # Form teams automatically
+    bind healing_team = form_healing_team()
+    
+    # Assign healing priorities
+    assign_healing_priority()
+    
+    # Analyze each entity's capabilities
+    check_entity_capabilities(battle_spirit)
+    check_entity_capabilities(field_medic)
+    check_entity_capabilities(combat_medic)
+    check_entity_capabilities(tank)
+    check_entity_capabilities(damage_dealer)
+    
+    scry $SCROLL("=== Tag System Demo Complete ===")
+
+# Execute the demonstration
+main()
