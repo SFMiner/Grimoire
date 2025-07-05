@@ -2589,6 +2589,62 @@ class GrimoireInterpreter:
         self.globals.define("get_anomaly_registry_stats", get_anomaly_registry_stats_builtin)
         self.globals.define("assign_anomalies_to_familiar", assign_anomalies_to_familiar_builtin)
         self.globals.define("check_familiar_anomalies", check_familiar_anomalies_builtin)
+        
+        # =====================================================================
+        # Tag System Built-ins
+        # =====================================================================
+        
+        def create_tag_builtin(interpreter, arguments):
+            """Create a tag from category and value."""
+            if len(arguments) != 2:
+                raise RuntimeError("create_tag expects 2 arguments (category, value)")
+            
+            try:
+                from .tag_system import create_tag
+                category, value = arguments
+                return create_tag(category, value)
+            except ImportError:
+                raise RuntimeError("Tag system not available")
+        
+        def create_mark_builtin(interpreter, arguments):
+            """Alias for create_tag using mystical terminology."""
+            return create_tag_builtin(interpreter, arguments)
+        
+        def set_mark_builtin(interpreter, arguments):
+            """Create and return a tag (alias for create_tag)."""
+            return create_tag_builtin(interpreter, arguments)
+        
+        def seek_mark_builtin(interpreter, arguments):
+            """Query entities by tags."""
+            if len(arguments) < 1:
+                raise RuntimeError("seek_mark expects at least 1 argument (required_tags)")
+            
+            try:
+                from .tag_registry import query_by_tags
+                required_tags = arguments[0] if isinstance(arguments[0], list) else [arguments[0]]
+                optional_tags = arguments[1] if len(arguments) > 1 and isinstance(arguments[1], list) else None
+                return query_by_tags(required_tags, optional_tags=optional_tags)
+            except ImportError:
+                raise RuntimeError("Tag registry not available")
+        
+        def register_tagged_entity_builtin(interpreter, arguments):
+            """Register an entity with the tag registry."""
+            if len(arguments) != 1:
+                raise RuntimeError("register_tagged_entity expects 1 argument (entity)")
+            
+            try:
+                from .tag_registry import register_entity
+                entity = arguments[0]
+                return register_entity(entity)
+            except ImportError:
+                raise RuntimeError("Tag registry not available")
+        
+        # Register tag system built-ins
+        self.globals.define("create_tag", create_tag_builtin)
+        self.globals.define("create_mark", create_mark_builtin)
+        self.globals.define("set_mark", set_mark_builtin)
+        self.globals.define("seek_mark", seek_mark_builtin)
+        self.globals.define("register_tagged_entity", register_tagged_entity_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
