@@ -604,7 +604,7 @@ class GrimoireParser:
             return self.scry_statement()
         if self.match(TokenType.SHIFT):
             return self.shift_statement()
-        if self.match(TokenType.SHOULD):
+        if self.match(TokenType.IF, TokenType.SHOULD):
             return self.if_statement()
         if self.match(TokenType.WHILE_CHARGED):
             return self.while_statement()
@@ -680,11 +680,18 @@ class GrimoireParser:
             pass
         
         else_branch = None
-        if self.match(TokenType.LEST.ELSE, TokenType.LEST):
+        # Handle 'be_it' (elif) recursively
+        if self.match(TokenType.BE_IT):
+            self.consume(TokenType.COLON, "Expected ':' after be_it (elif)")
+            while self.match(TokenType.NEWLINE):
+                pass
+            elif_branch_statement = self.statement()
+            else_branch = elif_branch_statement  # chain as else branch containing nested if
+        elif self.match(TokenType.OTHERWISE, TokenType.ELSEWISE, TokenType.LEST, TokenType.ELSE):
             self.consume(TokenType.COLON, "Expected ':' after else")
             while self.match(TokenType.NEWLINE):
                 pass
-            else_branch = self.parse_if_branch()
+            else_branch = self.statement()
         
         return IfStatement(condition, then_branch, else_branch)
     
