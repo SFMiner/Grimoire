@@ -36,7 +36,7 @@ from .parser import (
     IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
     BreakStatement, ContinueStatement,
     RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
-    PlaneStatement, ShiftStatement, EffectStatement, CommandStatement
+    PlaneStatement, ShiftStatement, EffectStatement, CommandStatement, AnomalyStatement
 )
 from .ai_system import (
     WorldModel, AgentWorldView, Entity, DecisionEngine, GoalEvaluator,
@@ -2406,6 +2406,175 @@ class GrimoireInterpreter:
         self.globals.define("profile_ai", profile_ai_builtin)
         self.globals.define("create_player", create_player_builtin)
         self.globals.define("create_timer", create_timer_builtin)
+        
+        # =====================================================================
+        # Anomaly Detection System Built-ins
+        # =====================================================================
+        
+        def register_anomaly_builtin(interpreter, arguments):
+            """Register an anomaly in the global registry."""
+            if len(arguments) != 1:
+                raise RuntimeError("register_anomaly expects 1 argument (anomaly)")
+            
+            from .anomalies import register_anomaly
+            anomaly = arguments[0]
+            return register_anomaly(anomaly)
+        
+        def get_anomaly_builtin(interpreter, arguments):
+            """Get an anomaly from the global registry."""
+            if len(arguments) != 1:
+                raise RuntimeError("get_anomaly expects 1 argument (identifier)")
+            
+            from .anomalies import get_anomaly
+            identifier = arguments[0]
+            return get_anomaly(identifier)
+        
+        def create_anomaly_set_builtin(interpreter, arguments):
+            """Create a named set of anomalies."""
+            if len(arguments) != 2:
+                raise RuntimeError("create_anomaly_set expects 2 arguments (set_name, anomaly_identifiers)")
+            
+            from .anomalies import create_anomaly_set
+            set_name, anomaly_identifiers = arguments
+            return create_anomaly_set(set_name, anomaly_identifiers)
+        
+        def get_anomaly_set_builtin(interpreter, arguments):
+            """Get a named set of anomalies."""
+            if len(arguments) != 1:
+                raise RuntimeError("get_anomaly_set expects 1 argument (set_name)")
+            
+            from .anomalies import get_anomaly_set
+            set_name = arguments[0]
+            return get_anomaly_set(set_name)
+        
+        def detect_anomaly_builtin(interpreter, arguments):
+            """Detect anomalies in entity state."""
+            if len(arguments) < 2:
+                raise RuntimeError("detect_anomaly expects at least 2 arguments (anomaly, entity_state)")
+            
+            anomaly = arguments[0]
+            entity_state = arguments[1]
+            world_state = arguments[2] if len(arguments) > 2 else {}
+            
+            return anomaly.detect(entity_state, world_state)
+        
+        def report_anomaly_builtin(interpreter, arguments):
+            """Report an anomaly detection."""
+            if len(arguments) < 3:
+                raise RuntimeError("report_anomaly expects at least 3 arguments (anomaly, entity, context)")
+            
+            anomaly = arguments[0]
+            entity = arguments[1]
+            context = arguments[2]
+            
+            return anomaly.report_detection(entity, context)
+        
+        def create_adaptive_anomaly_builtin(interpreter, arguments):
+            """Create an adaptive anomaly."""
+            if len(arguments) < 2:
+                raise RuntimeError("create_adaptive_anomaly expects at least 2 arguments (name, properties)")
+            
+            from .anomalies import AdaptiveAnomaly
+            name = arguments[0]
+            properties = arguments[1]
+            threshold_multiplier = arguments[2] if len(arguments) > 2 else 2.0
+            min_samples = arguments[3] if len(arguments) > 3 else 10
+            severity = arguments[4] if len(arguments) > 4 else 0.6
+            description = arguments[5] if len(arguments) > 5 else ""
+            
+            return AdaptiveAnomaly(name, properties, threshold_multiplier, min_samples, severity, description)
+        
+        def create_composite_anomaly_builtin(interpreter, arguments):
+            """Create a composite anomaly."""
+            if len(arguments) < 2:
+                raise RuntimeError("create_composite_anomaly expects at least 2 arguments (name, sub_anomalies)")
+            
+            from .anomalies import CompositeAnomaly
+            name = arguments[0]
+            sub_anomalies = arguments[1]
+            threshold = arguments[2] if len(arguments) > 2 else None
+            severity = arguments[3] if len(arguments) > 3 else 0.8
+            description = arguments[4] if len(arguments) > 4 else ""
+            
+            return CompositeAnomaly(name, sub_anomalies, threshold, severity, description)
+        
+        def add_context_rule_builtin(interpreter, arguments):
+            """Add a context rule to the anomaly registry."""
+            if len(arguments) != 1:
+                raise RuntimeError("add_context_rule expects 1 argument (rule_function)")
+            
+            from .anomalies import add_context_rule
+            rule_func = arguments[0]
+            add_context_rule(rule_func)
+            return "Context rule added"
+        
+        def get_active_anomalies_builtin(interpreter, arguments):
+            """Get active anomalies for a given context."""
+            if len(arguments) != 1:
+                raise RuntimeError("get_active_anomalies expects 1 argument (context)")
+            
+            from .anomalies import anomaly_registry
+            context = arguments[0]
+            return anomaly_registry.get_active_anomalies_for_context(context)
+        
+        def get_anomaly_registry_stats_builtin(interpreter, arguments):
+            """Get anomaly registry statistics."""
+            from .anomalies import anomaly_registry
+            return anomaly_registry.get_registry_stats()
+        
+        def assign_anomalies_to_familiar_builtin(interpreter, arguments):
+            """Assign anomalies to a familiar for monitoring."""
+            if len(arguments) != 2:
+                raise RuntimeError("assign_anomalies_to_familiar expects 2 arguments (familiar, anomalies)")
+            
+            familiar = arguments[0]
+            anomalies = arguments[1]
+            
+            # Add anomalies to familiar's monitoring list
+            if not hasattr(familiar, 'assigned_anomalies'):
+                familiar.assigned_anomalies = []
+            
+            if isinstance(anomalies, list):
+                familiar.assigned_anomalies.extend(anomalies)
+            else:
+                familiar.assigned_anomalies.append(anomalies)
+            
+            return f"Assigned {len(anomalies) if isinstance(anomalies, list) else 1} anomalies to {familiar.name}"
+        
+        def check_familiar_anomalies_builtin(interpreter, arguments):
+            """Check for anomalies in a familiar's monitored entities."""
+            if len(arguments) < 1:
+                raise RuntimeError("check_familiar_anomalies expects at least 1 argument (familiar)")
+            
+            familiar = arguments[0]
+            entity_state = arguments[1] if len(arguments) > 1 else {}
+            world_state = arguments[2] if len(arguments) > 2 else {}
+            
+            if not hasattr(familiar, 'assigned_anomalies'):
+                return []
+            
+            detected_anomalies = []
+            for anomaly in familiar.assigned_anomalies:
+                if anomaly.detect(entity_state, world_state):
+                    report = anomaly.report_detection(familiar, {"check_time": __import__('time').time()})
+                    detected_anomalies.append(report)
+            
+            return detected_anomalies
+        
+        # Register anomaly built-ins
+        self.globals.define("register_anomaly", register_anomaly_builtin)
+        self.globals.define("get_anomaly", get_anomaly_builtin)
+        self.globals.define("create_anomaly_set", create_anomaly_set_builtin)
+        self.globals.define("get_anomaly_set", get_anomaly_set_builtin)
+        self.globals.define("detect_anomaly", detect_anomaly_builtin)
+        self.globals.define("report_anomaly", report_anomaly_builtin)
+        self.globals.define("create_adaptive_anomaly", create_adaptive_anomaly_builtin)
+        self.globals.define("create_composite_anomaly", create_composite_anomaly_builtin)
+        self.globals.define("add_context_rule", add_context_rule_builtin)
+        self.globals.define("get_active_anomalies", get_active_anomalies_builtin)
+        self.globals.define("get_anomaly_registry_stats", get_anomaly_registry_stats_builtin)
+        self.globals.define("assign_anomalies_to_familiar", assign_anomalies_to_familiar_builtin)
+        self.globals.define("check_familiar_anomalies", check_familiar_anomalies_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
@@ -2569,6 +2738,67 @@ class GrimoireInterpreter:
             success = self.plane_manager.shift_to_plane(statement.target_plane)
             if not success:
                 raise RuntimeError(f"Failed to shift to plane '{statement.target_plane}'")
+        
+        elif isinstance(statement, AnomalyStatement):
+            # Handle anomaly definitions
+            from .anomalies import BaseAnomaly, AdaptiveAnomaly, CompositeAnomaly, register_anomaly
+            
+            # Create the appropriate anomaly type
+            if statement.anomaly_type == "adaptive":
+                anomaly = AdaptiveAnomaly(
+                    name=statement.name,
+                    properties=statement.properties,
+                    threshold_multiplier=statement.threshold_multiplier or 2.0,
+                    min_samples=statement.threshold or 10,
+                    severity=statement.severity,
+                    description=statement.description
+                )
+            elif statement.anomaly_type == "composite":
+                # Get sub-anomalies from registry
+                from .anomalies import get_anomaly
+                sub_anomalies = []
+                for sub_name in statement.sub_anomalies:
+                    sub_anomaly = get_anomaly(sub_name)
+                    if sub_anomaly:
+                        sub_anomalies.append(sub_anomaly)
+                    else:
+                        raise RuntimeError(f"Sub-anomaly '{sub_name}' not found")
+                
+                anomaly = CompositeAnomaly(
+                    name=statement.name,
+                    sub_anomalies=sub_anomalies,
+                    threshold=statement.threshold,
+                    severity=statement.severity,
+                    description=statement.description
+                )
+            else:
+                # Create a custom base anomaly with body logic
+                class CustomAnomaly(BaseAnomaly):
+                    def __init__(self, name, severity, description, body_statements, interpreter_env):
+                        super().__init__(name, severity, description)
+                        self.body_statements = body_statements
+                        self.interpreter_env = interpreter_env
+                    
+                    def detect(self, entity_state, world_state):
+                        # For custom anomalies, always return False for now
+                        # In a full implementation, you'd execute the body statements
+                        # and evaluate the result
+                        return False
+                
+                body_statements = statement.body.statements if statement.body else []
+                anomaly = CustomAnomaly(
+                    statement.name,
+                    statement.severity,
+                    statement.description,
+                    body_statements,
+                    self.environment
+                )
+            
+            # Register the anomaly
+            register_anomaly(anomaly)
+            
+            # Also define it in the current environment
+            self.environment.define(statement.name, anomaly)
         
         else:
             raise RuntimeError(f"Unknown statement type: {type(statement)}")
