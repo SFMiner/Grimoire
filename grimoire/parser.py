@@ -680,7 +680,14 @@ class GrimoireParser:
             pass
         
         else_branch = None
-        if self.match(TokenType.LEST):
+        # Handle 'be_it' (elif) recursively
+        if self.match(TokenType.BE_IT):
+            self.consume(TokenType.COLON, "Expected ':' after be_it (elif)")
+            while self.match(TokenType.NEWLINE):
+                pass
+            elif_branch_statement = self.statement()
+            else_branch = elif_branch_statement  # chain as else branch containing nested if
+        elif self.match(TokenType.OTHERWISE) or self.match(TokenType.ELSEWISE) or self.match(TokenType.LEST):
             self.consume(TokenType.COLON, "Expected ':' after else")
             while self.match(TokenType.NEWLINE):
                 pass

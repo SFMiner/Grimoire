@@ -45,7 +45,10 @@ class TokenType(Enum):
     
     # Control Flow
     SHOULD = auto()         # if statement
-    LEST = auto()           # else statement
+    BE_IT = auto()          # elif
+    OTHERWISE = auto()      # else
+    ELSEWISE = auto()       # else (variant)
+    LEST = auto()           # legacy else (kept for compatibility)
     WHILE_CHARGED = auto()  # while loop
     FOR_EACH = auto()       # for loop start
     ARCANA = auto()         # for loop variable
@@ -139,6 +142,9 @@ class GrimoireLexer:
         'not': TokenType.NOT,
         'return': TokenType.RETURN,
         'should': TokenType.SHOULD,
+        'be_it': TokenType.BE_IT,
+        'otherwise': TokenType.OTHERWISE,
+        'elsewise': TokenType.ELSEWISE,
         'lest': TokenType.LEST,
     }
     
