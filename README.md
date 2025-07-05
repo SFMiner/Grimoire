@@ -20,8 +20,8 @@ A magical programming language designed for game development with hierarchical a
 git clone https://github.com/grimoire-lang/grimoire.git
 cd grimoire
 
-# Install dependencies
-pip install -r requirements.txt
+# Install with pip
+pip install -e .
 
 # Run the interactive REPL
 python -m grimoire --interactive
