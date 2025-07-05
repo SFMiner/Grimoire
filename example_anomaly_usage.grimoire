@@ -1,0 +1,52 @@
+# Grimoire Anomaly Detection Example
+# This demonstrates using the anomaly system within Grimoire language
+
+# Create an adaptive anomaly for monitoring player behavior
+bind player_anomaly = create_adaptive_anomaly upon $SCROLL(player_behavior), 
+    [$SCROLL(actions_per_minute), $SCROLL(movement_speed)], 
+    2.0, 15, 0.6, $SCROLL(Monitors unusual player behavior patterns)
+
+# Register the anomaly
+register_anomaly upon player_anomaly
+
+# Create a health monitoring familiar
+bind health_monitor = create_ai_familiar upon $SCROLL(health_monitor), $SCROLL(monitor)
+
+# Assign the anomaly to the familiar for monitoring
+assign_anomalies_to_familiar upon health_monitor, [player_anomaly]
+
+# Create some test entity states
+bind normal_player = {
+    $SCROLL(health): 85,
+    $SCROLL(max_health): 100,
+    $SCROLL(actions_per_minute): 45,
+    $SCROLL(movement_speed): 5.2
+}
+
+bind suspicious_player = {
+    $SCROLL(health): 20,
+    $SCROLL(max_health): 100,
+    $SCROLL(actions_per_minute): 150,
+    $SCROLL(movement_speed): 12.0
+}
+
+# Train the adaptive anomaly with normal behavior
+scry $SCROLL(Training anomaly with normal behavior...)
+# Note: In a real implementation, you'd have a loop here
+
+# Test anomaly detection
+scry $SCROLL(Testing normal player...)
+bind normal_result = check_familiar_anomalies upon health_monitor, normal_player, {}
+
+scry $SCROLL(Testing suspicious player...)
+bind suspicious_result = check_familiar_anomalies upon health_monitor, suspicious_player, {}
+
+# Display results
+scry $SCROLL(Normal player anomalies: ) added to normal_result
+scry $SCROLL(Suspicious player anomalies: ) added to suspicious_result
+
+# Get registry statistics
+bind stats = get_anomaly_registry_stats upon
+scry $SCROLL(Registry stats: ) added to stats
+
+scry $SCROLL(Anomaly detection demo completed!)

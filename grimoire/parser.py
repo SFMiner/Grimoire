@@ -253,6 +253,20 @@ class EffectStatement(Statement):
 
 
 @dataclass
+class AnomalyStatement(Statement):
+    """Represents anomaly definitions."""
+    name: str
+    anomaly_type: str  # 'base', 'composite', 'adaptive'
+    properties: List[str]  # For adaptive anomalies
+    sub_anomalies: List[str]  # For composite anomalies
+    threshold: Optional[int]  # For composite anomalies
+    threshold_multiplier: Optional[float]  # For adaptive anomalies
+    severity: float
+    description: str
+    body: Optional[BlockStatement]  # For custom detection logic
+
+
+@dataclass
 class CommandStatement(Statement):
     """Represents familiar commands."""
     familiar: Expression
@@ -393,6 +407,8 @@ class GrimoireParser:
                 return self.plane_declaration()
             if self.match(TokenType.EFFECT):
                 return self.effect_declaration()
+            if self.match(TokenType.ANOMALY):
+                return self.anomaly_declaration()
             
             return self.statement()
         except ParseError as e:
@@ -597,6 +613,83 @@ class GrimoireParser:
         name = self.consume(TokenType.IDENTIFIER, "Expected effect name").lexeme
         return EffectStatement(name)
     
+    def anomaly_declaration(self) -> AnomalyStatement:
+        """Parse anomaly declarations."""
+        name = self.consume(TokenType.IDENTIFIER, "Expected anomaly name").lexeme
+        
+        # Default values
+        anomaly_type = "base"
+        properties = []
+        sub_anomalies = []
+        threshold = None
+        threshold_multiplier = None
+        severity = 0.5
+        description = ""
+        body = None
+        
+        # Parse anomaly parameters in parentheses
+        if self.match(TokenType.LEFT_PAREN):
+            while not self.check(TokenType.RIGHT_PAREN) and not self.is_at_end():
+                if self.match(TokenType.IDENTIFIER):
+                    param_name = self.previous().lexeme
+                    
+                    if param_name == "type":
+                        self.consume(TokenType.IS_NOW, "Expected '=' after 'type'")
+                        anomaly_type = self.consume(TokenType.IDENTIFIER, "Expected anomaly type").lexeme
+                    elif param_name == "severity":
+                        self.consume(TokenType.IS_NOW, "Expected '=' after 'severity'")
+                        severity = float(self.consume(TokenType.AETHER, "Expected severity value").literal)
+                    elif param_name == "description":
+                        self.consume(TokenType.IS_NOW, "Expected '=' after 'description'")
+                        description = self.consume(TokenType.SCROLL, "Expected description string").literal
+                    elif param_name == "properties":
+                        self.consume(TokenType.IS_NOW, "Expected '=' after 'properties'")
+                        self.consume(TokenType.LEFT_BRACKET, "Expected '[' for properties list")
+                        while not self.check(TokenType.RIGHT_BRACKET) and not self.is_at_end():
+                            prop = self.consume(TokenType.SCROLL, "Expected property name").literal
+                            properties.append(prop)
+                            if not self.match(TokenType.COMMA):
+                                break
+                        self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after properties")
+                    elif param_name == "sub_anomalies":
+                        self.consume(TokenType.IS_NOW, "Expected '=' after 'sub_anomalies'")
+                        self.consume(TokenType.LEFT_BRACKET, "Expected '[' for sub_anomalies list")
+                        while not self.check(TokenType.RIGHT_BRACKET) and not self.is_at_end():
+                            sub_anomaly = self.consume(TokenType.SCROLL, "Expected sub-anomaly name").literal
+                            sub_anomalies.append(sub_anomaly)
+                            if not self.match(TokenType.COMMA):
+                                break
+                        self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after sub_anomalies")
+                    elif param_name == "threshold":
+                        self.consume(TokenType.IS_NOW, "Expected '=' after 'threshold'")
+                        threshold = int(self.consume(TokenType.SIGIL, "Expected threshold value").literal)
+                    elif param_name == "threshold_multiplier":
+                        self.consume(TokenType.IS_NOW, "Expected '=' after 'threshold_multiplier'")
+                        threshold_multiplier = float(self.consume(TokenType.AETHER, "Expected threshold multiplier").literal)
+                
+                if not self.match(TokenType.COMMA):
+                    break
+            
+            self.consume(TokenType.RIGHT_PAREN, "Expected ')' after anomaly parameters")
+        
+        # Optional body for custom detection logic
+        if self.match(TokenType.COLON):
+            while self.match(TokenType.NEWLINE):
+                pass
+            body = self.block_statement()
+        
+        return AnomalyStatement(
+            name=name,
+            anomaly_type=anomaly_type,
+            properties=properties,
+            sub_anomalies=sub_anomalies,
+            threshold=threshold,
+            threshold_multiplier=threshold_multiplier,
+            severity=severity,
+            description=description,
+            body=body
+        )
+    
     def essence_declaration(self) -> BindStatement:
         """Parse essence (class attribute) declarations."""
         name = self.consume(TokenType.IDENTIFIER, "Expected essence name").lexeme
@@ -612,7 +705,7 @@ class GrimoireParser:
         return self.check(TokenType.RITUAL) or self.check(TokenType.ARTIFACT) or \
                self.check(TokenType.FAMILIAR) or self.check(TokenType.ARCHON) or \
                self.check(TokenType.SPIRIT) or self.check(TokenType.PLANE) or \
-               self.check(TokenType.EFFECT)
+               self.check(TokenType.EFFECT) or self.check(TokenType.ANOMALY)
     
     def statement(self) -> Statement:
         """Parse statements."""

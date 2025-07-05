@@ -61,6 +61,9 @@ class TokenType(Enum):
     COMMAND = auto()        # Familiar command
     INQUIRE = auto()        # Familiar query
     DISMISS = auto()        # Familiar dismissal
+    ANOMALY = auto()        # Anomaly definition
+    DETECT = auto()         # Anomaly detection
+    ESCALATE = auto()       # Anomaly escalation
     
     # Control Flow
     IF = auto()             # if statement (standard)
@@ -156,6 +159,9 @@ class GrimoireLexer:
         'command': TokenType.COMMAND,
         'inquire': TokenType.INQUIRE,
         'dismiss': TokenType.DISMISS,
+        'anomaly': TokenType.ANOMALY,
+        'detect': TokenType.DETECT,
+        'escalate': TokenType.ESCALATE,
         'arcana': TokenType.ARCANA,
         'in': TokenType.IN,
         'and': TokenType.AND,
