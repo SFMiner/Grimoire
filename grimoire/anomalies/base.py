@@ -26,9 +26,51 @@ BaseAnomaly, CompositeAnomaly, and AdaptiveAnomaly classes.
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
 import uuid
 import time
 import threading
+
+
+@dataclass
+class AnomalyReport:
+    """
+    Standardized anomaly report structure.
+    
+    This class provides a consistent format for anomaly detection reports
+    that can be passed between familiars, spirits, and archons.
+    """
+    anomaly_id: str
+    anomaly_name: str
+    severity: float
+    detection_time: float
+    entity_state: Dict[str, Any]
+    world_state: Dict[str, Any]
+    detector_name: str
+    escalation_needed: bool
+    metadata: Dict[str, Any]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert report to dictionary format."""
+        return {
+            "anomaly_id": self.anomaly_id,
+            "anomaly_name": self.anomaly_name,
+            "severity": self.severity,
+            "detection_time": self.detection_time,
+            "entity_state": self.entity_state,
+            "world_state": self.world_state,
+            "detector_name": self.detector_name,
+            "escalation_needed": self.escalation_needed,
+            "metadata": self.metadata
+        }
+    
+    def is_critical(self) -> bool:
+        """Check if this is a critical anomaly."""
+        return self.severity >= 0.8
+    
+    def is_high_priority(self) -> bool:
+        """Check if this is a high-priority anomaly."""
+        return self.severity >= 0.6
 
 
 class BaseAnomaly(ABC):
