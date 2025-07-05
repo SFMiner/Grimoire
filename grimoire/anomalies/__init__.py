@@ -17,31 +17,42 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """
-Grimoire Anomaly Detection System
+Anomaly Detection System
 
-A comprehensive anomaly detection framework integrated with Grimoire's
-agent hierarchy for proactive problem detection and automated escalation.
-
-This system transforms expensive periodic searches into efficient, agent-driven
-detection through programmable Anomaly artifacts.
+This package provides a comprehensive anomaly detection framework for the
+Grimoire programming language, including base classes, registry management,
+and integration mixins.
 """
 
-from .base import BaseAnomaly, CompositeAnomaly, AdaptiveAnomaly
-from .registry import (
-    AnomalyRegistry, anomaly_registry,
-    register_anomaly, get_anomaly, create_anomaly_set, get_anomaly_set, add_context_rule
+from .base import BaseAnomaly, CompositeAnomaly, AdaptiveAnomaly, AnomalyReport
+from .registry import AnomalyRegistry, anomaly_registry
+from .mixins import (
+    AnomalyDetectorMixin, 
+    ContextAwareAnomalyMixin,
+    game_mode_context_rule,
+    time_based_context_rule,
+    load_based_context_rule,
+    business_period_context_rule
 )
 
-__version__ = "1.0.0"
 __all__ = [
-    "BaseAnomaly", 
+    # Base classes
+    "BaseAnomaly",
     "CompositeAnomaly", 
     "AdaptiveAnomaly",
-    "AnomalyRegistry", 
+    "AnomalyReport",
+    
+    # Registry
+    "AnomalyRegistry",
     "anomaly_registry",
-    "register_anomaly",
-    "get_anomaly", 
-    "create_anomaly_set",
-    "get_anomaly_set",
-    "add_context_rule"
+    
+    # Mixins
+    "AnomalyDetectorMixin",
+    "ContextAwareAnomalyMixin",
+    
+    # Context rules
+    "game_mode_context_rule",
+    "time_based_context_rule", 
+    "load_based_context_rule",
+    "business_period_context_rule"
 ]
