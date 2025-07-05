@@ -1772,6 +1772,38 @@ class GrimoireInterpreter:
             self.familiar_wrangler.register_familiar(familiar)
             return familiar
         
+        # Enhanced familiar creation functions
+        def create_entity_familiar_builtin(interpreter, arguments):
+            """create_entity_familiar(name, [properties]) -> EntityFamiliar"""
+            if len(arguments) < 1:
+                raise RuntimeError("create_entity_familiar expects at least 1 argument (name)")
+            name = arguments[0]
+            properties = arguments[1] if len(arguments) > 1 else {}
+            
+            try:
+                from grimoire.familiars.entity_familiar import EntityFamiliar
+                familiar = EntityFamiliar(name, properties)
+                self.familiars[name] = familiar
+                self.familiar_wrangler.register_familiar(familiar)
+                return familiar
+            except ImportError:
+                raise RuntimeError("EntityFamiliar not available")
+        
+        def create_ai_familiar_builtin(interpreter, arguments):
+            """create_ai_familiar(name) -> AIFamiliar"""
+            if len(arguments) < 1:
+                raise RuntimeError("create_ai_familiar expects 1 argument (name)")
+            name = arguments[0]
+            
+            try:
+                from grimoire.familiars.ai_familiar import AIFamiliar
+                familiar = AIFamiliar(name)
+                self.familiars[name] = familiar
+                self.familiar_wrangler.register_familiar(familiar)
+                return familiar
+            except ImportError:
+                raise RuntimeError("AIFamiliar not available")
+        
         # Built-in function for creating archons
         def create_archon_builtin(interpreter, arguments):
             if len(arguments) < 2:
@@ -2302,6 +2334,8 @@ class GrimoireInterpreter:
 
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
+        self.globals.define("create_entity_familiar", create_entity_familiar_builtin)
+        self.globals.define("create_ai_familiar", create_ai_familiar_builtin)
         self.globals.define("create_archon", create_archon_builtin)
         self.globals.define("create_spirit", create_spirit_builtin)
         self.globals.define("autonomous_update", autonomous_update_builtin)

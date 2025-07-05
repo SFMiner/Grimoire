@@ -604,7 +604,7 @@ class GrimoireParser:
             return self.scry_statement()
         if self.match(TokenType.SHIFT):
             return self.shift_statement()
-        if self.match(TokenType.SHOULD):
+        if self.match(TokenType.IF, TokenType.SHOULD):
             return self.if_statement()
         if self.match(TokenType.WHILE_CHARGED):
             return self.while_statement()
@@ -687,11 +687,11 @@ class GrimoireParser:
                 pass
             elif_branch_statement = self.statement()
             else_branch = elif_branch_statement  # chain as else branch containing nested if
-        elif self.match(TokenType.OTHERWISE) or self.match(TokenType.ELSEWISE) or self.match(TokenType.LEST):
+        elif self.match(TokenType.OTHERWISE, TokenType.ELSEWISE, TokenType.LEST, TokenType.ELSE):
             self.consume(TokenType.COLON, "Expected ':' after else")
             while self.match(TokenType.NEWLINE):
                 pass
-            else_branch = self.parse_if_branch()
+            else_branch = self.statement()
         
         return IfStatement(condition, then_branch, else_branch)
     
@@ -701,7 +701,7 @@ class GrimoireParser:
         
         # Collect all statements at the same indentation level
         while (not self.is_at_end() and 
-                               not self.check(TokenType.LEST) and
+               not self.check(TokenType.ELSE) and not self.check(TokenType.LEST) and
                not self.check_next_declaration()):
             
             if self.match(TokenType.NEWLINE):
@@ -723,7 +723,7 @@ class GrimoireParser:
             if not isinstance(stmt, ExpressionStatement):
                 # Check if the next line is at the same or lesser indentation
                 # For now, we'll use a simple approach: stop if we see certain tokens
-                if (self.check(TokenType.LEST) or 
+                if (self.check(TokenType.ELSE) or (self.check(TokenType.LEST) or 
                     self.check(TokenType.IDENTIFIER) or
                     self.check_next_declaration()):
                     break
@@ -938,7 +938,9 @@ class GrimoireParser:
                         self.check(TokenType.SIGIL) or 
                         self.check(TokenType.AETHER) or
                         self.check(TokenType.LEFT_PAREN) or
-                        self.check(TokenType.CONJURE)):
+                        self.check(TokenType.CONJURE) or
+                        self.check(TokenType.SUMMON) or
+                        self.check(TokenType.EVOKE)):
                         arguments.append(self.expression())
                         while self.match(TokenType.COMMA):
                             arguments.append(self.expression())
@@ -982,13 +984,35 @@ class GrimoireParser:
                         self.check(TokenType.SIGIL) or 
                         self.check(TokenType.AETHER) or
                         self.check(TokenType.LEFT_PAREN) or
-                        self.check(TokenType.CONJURE)):
+                        self.check(TokenType.CONJURE) or
+                        self.check(TokenType.SUMMON) or
+                        self.check(TokenType.EVOKE)):
                         arguments.append(self.expression())
                         while self.match(TokenType.COMMA):
                             arguments.append(self.expression())
             
             return ConjureExpression(artifact_type, arguments)
-        
+
+        if self.match(TokenType.SUMMON):
+            # Handle summon as a function call
+            summon_token = self.previous()
+            return IdentifierExpression(summon_token.lexeme)
+
+        if self.match(TokenType.EVOKE):
+            # Handle evoke for formal property access
+            # Parse: evoke object.property -> PropertyAccessExpression
+            # Parse the object identifier directly
+            obj_name = self.consume(TokenType.IDENTIFIER, "Expected object name after 'evoke'").lexeme
+            obj = IdentifierExpression(obj_name)
+
+            # Handle property access with dot notation
+            if self.match(TokenType.DOT):
+                prop = self.consume(TokenType.IDENTIFIER, "Expected property name after '.'").lexeme
+                return PropertyAccessExpression(obj, prop)
+
+            # If no dot, just return the object
+            return obj
+
         if self.match(TokenType.PORTAL):
             plane = self.consume(TokenType.IDENTIFIER, "Expected plane name after 'portal'").lexeme
             self.consume(TokenType.DOT, "Expected '.' after plane name")

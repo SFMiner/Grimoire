@@ -1,0 +1,60 @@
+# Grimoire Familiar System Demo
+# Demonstration of corrected familiar system
+
+ritual main():
+    scry $SCROLL(=== Grimoire Familiar System Demo ===)
+    
+    # Create test entities using enhanced familiar types
+    bind player = create_entity_familiar upon $SCROLL(Player), {
+        health: 100,
+        mana: 50,
+        can_move: true,
+        can_attack: true,
+        type: $SCROLL(player)
+    }
+    
+    bind enemy = create_entity_familiar upon $SCROLL(Goblin), {
+        health: 60,
+        attack: 12,
+        can_move: true,
+        type: $SCROLL(enemy)
+    }
+    
+    # Create AI controller using enhanced AI familiar
+    bind ai_controller = create_ai_familiar upon $SCROLL(GameAI)
+    
+    # Connect familiars via sockets for communication
+    scry $SCROLL(Connecting familiars via sockets...)
+    
+    # Link player property updates to AI input
+    link_familiars upon player, ai_controller, $SCROLL(property_updates)
+    
+    # Link enemy updates to AI as well
+    link_familiars upon enemy, ai_controller, $SCROLL(enemy_updates)
+    
+    # Test property updates and socket communication
+    scry $SCROLL(Testing property updates...)
+    scry $SCROLL(Player health before: ) added to player.inquire($SCROLL(prop:health))
+    
+    # Update player health (should trigger socket notification)
+    player.update_property($SCROLL(health), 75)
+    scry $SCROLL(Player health after: ) added to player.inquire($SCROLL(prop:health))
+    
+    # Test AI familiar capabilities
+    scry $SCROLL(Testing AI capabilities...)
+    scry $SCROLL(AI familiar type: ) added to ai_controller.inquire($SCROLL(type))
+    scry $SCROLL(AI capabilities: ) added to ai_controller.inquire($SCROLL(capabilities))
+    
+    # Demonstrate autonomous updates
+    scry $SCROLL(Running autonomous updates...)
+    autonomous_update upon
+    
+    # Show familiar stats
+    scry $SCROLL(Familiar statistics:)
+    bind stats = get_familiar_stats upon
+    scry stats
+    
+    scry $SCROLL(=== Demo Complete ===)
+
+# Run the demo
+main upon
