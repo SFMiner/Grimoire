@@ -60,6 +60,13 @@ class LiteralExpression(Expression):
 
 
 @dataclass
+class TagLiteralExpression(Expression):
+    """Represents tag literals ($TAG(category:value))."""
+    category: str
+    value: str
+
+
+@dataclass
 class IdentifierExpression(Expression):
     """Represents variable/function identifiers."""
     name: str
@@ -1048,6 +1055,7 @@ class GrimoireParser:
                         self.check(TokenType.SCROLL) or 
                         self.check(TokenType.SIGIL) or 
                         self.check(TokenType.AETHER) or
+                        self.check(TokenType.TAG) or
                         self.check(TokenType.LEFT_PAREN) or
                         self.check(TokenType.CONJURE) or
                         self.check(TokenType.SUMMON) or
@@ -1076,6 +1084,11 @@ class GrimoireParser:
         if self.match(TokenType.AETHER):
             return LiteralExpression(self.previous().literal, TokenType.AETHER)
         
+        if self.match(TokenType.TAG):
+            # Parse tag literal: $TAG(category:value)
+            category, value = self.previous().literal
+            return TagLiteralExpression(category, value)
+        
         if self.match(TokenType.IDENTIFIER):
             return IdentifierExpression(self.previous().lexeme)
         
@@ -1094,6 +1107,7 @@ class GrimoireParser:
                         self.check(TokenType.SCROLL) or 
                         self.check(TokenType.SIGIL) or 
                         self.check(TokenType.AETHER) or
+                        self.check(TokenType.TAG) or
                         self.check(TokenType.LEFT_PAREN) or
                         self.check(TokenType.CONJURE) or
                         self.check(TokenType.SUMMON) or

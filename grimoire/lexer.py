@@ -64,6 +64,7 @@ class TokenType(Enum):
     ANOMALY = auto()        # Anomaly definition
     DETECT = auto()         # Anomaly detection
     ESCALATE = auto()       # Anomaly escalation
+    TAG = auto()            # Tag literal $TAG(category:value)
     
     # Control Flow
     IF = auto()             # if statement (standard)
@@ -310,12 +311,17 @@ class GrimoireLexer:
             while self.peek() != '\n' and not self.is_at_end():
                 self.advance()
         elif c == '$':
-            # Handle $SCROLL() literals
+            # Handle $SCROLL() and $TAG() literals
             if self.match_word('SCROLL'):
                 # Advance past 'SCROLL'
                 for _ in range(6):  # len('SCROLL')
                     self.advance()
                 self.scroll_literal()
+            elif self.match_word('TAG'):
+                # Advance past 'TAG'
+                for _ in range(3):  # len('TAG')
+                    self.advance()
+                self.tag_literal()
         elif c.isalpha() or c == '_':
             # Handle identifiers and keywords
             self.identifier()
@@ -405,6 +411,31 @@ class GrimoireLexer:
         # Consume closing )
         self.advance()
         self.add_token(TokenType.SCROLL, value)
+    
+    def tag_literal(self) -> None:
+        """Handle $TAG() tag literals."""
+        if not self.match('('):
+            raise SyntaxError(f"Expected '(' after $TAG at line {self.line}")
+        
+        content = ""
+        while self.peek() != ')' and not self.is_at_end():
+            if self.peek() == '\n':
+                self.line += 1
+                self.column = 1
+            content += self.advance()
+        
+        if self.is_at_end():
+            raise SyntaxError(f"Unterminated tag literal at line {self.line}")
+        
+        # Consume closing )
+        self.advance()
+        
+        # Parse tag content (category:value)
+        if ':' not in content:
+            raise SyntaxError(f"Tag must have format 'category:value' at line {self.line}")
+        
+        category, value = content.split(':', 1)
+        self.add_token(TokenType.TAG, (category.strip(), value.strip()))
     
     def number(self) -> None:
         """Handle numeric literals."""
