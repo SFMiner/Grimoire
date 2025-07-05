@@ -1800,7 +1800,13 @@ class GrimoireInterpreter:
             
             try:
                 from grimoire.familiars.entity_familiar import EntityFamiliar
-                familiar = EntityFamiliar(name, properties)
+                familiar = EntityFamiliar(name)  # Only pass name to constructor
+                
+                # Set properties after creation if provided
+                if properties and isinstance(properties, dict):
+                    for prop_name, prop_value in properties.items():
+                        familiar.set_property(prop_name, prop_value, "initialization")
+                
                 self.familiars[name] = familiar
                 self.familiar_wrangler.register_familiar(familiar)
                 return familiar
