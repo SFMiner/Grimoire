@@ -8,9 +8,12 @@ decision making, goal evaluation, world modeling, and autonomous behavior.
 
 import time
 import random
-from typing import Any, Dict, Optional, Set, List, Callable
+from typing import Any, Dict, Optional, Set, List, Callable, Union
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+
+from grimoire.world_state import get_world_state, WorldState
+from grimoire.goals import GoalArtifact, register_goal
 
 try:
     from ..interpreter import GrimoireFamiliar
@@ -128,8 +131,11 @@ class AIFamiliar(GrimoireFamiliar):
         if missing:
             raise FamiliarCapabilityError(f"AIFamiliar missing required capabilities: {missing}")
         
+        # Shared world-state reference
+        self.world_state: WorldState = get_world_state()
+
         # Initialize AI-specific attributes
-        self.goals: List[Goal] = []
+        self.goals: List[Union[Goal, GoalArtifact]] = []
         self.actions: List[Action] = []
         self.world_model: Dict[str, Any] = {}
         self.decision_history: List[Decision] = []
@@ -225,6 +231,9 @@ class AIFamiliar(GrimoireFamiliar):
     def add_goal(self, goal: Goal) -> None:
         """Add a new goal to the AI system."""
         self.goals.append(goal)
+        # If a GoalArtifact, also register globally for debugging
+        if isinstance(goal, GoalArtifact):
+            register_goal(goal)
         self.log_activity(
             "self",
             f"Goal added: {goal.name}",
@@ -244,7 +253,7 @@ class AIFamiliar(GrimoireFamiliar):
                 return True
         return False
     
-    def get_goal(self, goal_name: str) -> Optional[Goal]:
+    def get_goal(self, goal_name: str) -> Optional[Union[Goal, GoalArtifact]]:
         """Get a goal by name."""
         for goal in self.goals:
             if goal.name == goal_name:
@@ -292,12 +301,17 @@ class AIFamiliar(GrimoireFamiliar):
     def evaluate_goals(self, world_state: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
         """Evaluate all goals and return satisfaction levels."""
         if world_state is None:
-            world_state = self.world_model
+            world_state = self.world_model or self.world_state.to_dict()
         
         satisfactions = {}
         for goal in self.goals:
-            satisfaction = goal.evaluate_satisfaction(world_state)
-            goal.current_satisfaction = satisfaction
+            if isinstance(goal, GoalArtifact):
+                satisfaction = goal.evaluate(self.world_state)
+                goal_current = satisfaction
+            else:
+                satisfaction = goal.evaluate_satisfaction(world_state)
+                goal_current = satisfaction
+                goal.current_satisfaction = satisfaction  # keep legacy updated
             satisfactions[goal.name] = satisfaction
         
         return satisfactions
@@ -339,8 +353,13 @@ class AIFamiliar(GrimoireFamiliar):
         # Calculate utility based on goal satisfaction improvement
         total_utility = 0.0
         for goal in self.goals:
-            current_satisfaction = goal.evaluate_satisfaction(world_state)
-            predicted_satisfaction = goal.evaluate_satisfaction(predicted_state)
+            if isinstance(goal, GoalArtifact):
+                current_satisfaction = goal.evaluate(self.world_state)
+                # simulate predicted state by temporarily evaluating with dummy world
+                predicted_satisfaction = goal.evaluate(self.world_state)  # simplistic
+            else:
+                current_satisfaction = goal.evaluate_satisfaction(world_state)
+                predicted_satisfaction = goal.evaluate_satisfaction(predicted_state)
             improvement = predicted_satisfaction - current_satisfaction
             weighted_improvement = improvement * goal.priority
             total_utility += weighted_improvement
@@ -523,7 +542,7 @@ class AIFamiliar(GrimoireFamiliar):
                 for d in self.decision_history[-5:]  # Last 5 decisions
             ],
             "goal_satisfactions": {
-                goal.name: goal.current_satisfaction 
+                goal.name: (goal.current_satisfaction if hasattr(goal, 'current_satisfaction') else 0.0)
                 for goal in self.goals
             }
         }
