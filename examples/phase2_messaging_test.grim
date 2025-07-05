@@ -1,0 +1,139 @@
+# Phase 2: Communication Protocols & Message Routing Test
+# This example demonstrates the new messaging system with:
+# - Standardized FamiliarMessage format
+# - MessageRouter for inter-familiar communication
+# - Error handling and debugging tools
+# - Socket integration with messaging
+
+scry $SCROLL(=== Phase 2: Communication Protocols Test ===)
+
+# Test 1: Create Entity and AI familiars with messaging support
+scry $SCROLL(Creating familiars with messaging capabilities...)
+
+bind entity_familiar = summon upon $SCROLL(Entity), $SCROLL(EntityBot)
+bind ai_familiar = summon upon $SCROLL(AI), $SCROLL(AIBot)
+
+# Test 2: Basic familiar properties and messaging setup
+scry $SCROLL(Testing basic familiar properties...)
+scry $SCROLL(Entity familiar name: ) added to entity_familiar.name
+scry $SCROLL(Entity familiar true name: ) added to entity_familiar.true_name
+scry $SCROLL(Entity familiar type: ) added to entity_familiar.familiar_type
+
+scry $SCROLL(AI familiar name: ) added to ai_familiar.name
+scry $SCROLL(AI familiar true name: ) added to ai_familiar.true_name
+scry $SCROLL(AI familiar type: ) added to ai_familiar.familiar_type
+
+# Test 3: Property management with messaging
+scry $SCROLL(Testing property management with messaging...)
+
+# Set some properties on the entity familiar
+# This should trigger property change messages
+entity_familiar.set_property upon $SCROLL(health), 100
+entity_familiar.set_property upon $SCROLL(level), 5
+entity_familiar.set_property upon $SCROLL(sync_status), $SCROLL(active)
+
+# Check properties
+scry $SCROLL(Entity health: ) added to entity_familiar.get_property upon $SCROLL(health)
+scry $SCROLL(Entity level: ) added to entity_familiar.get_property upon $SCROLL(level)
+scry $SCROLL(Entity sync_status: ) added to entity_familiar.get_property upon $SCROLL(sync_status)
+
+# Test 4: Property history tracking
+scry $SCROLL(Testing property history tracking...)
+
+# Update a property multiple times
+entity_familiar.set_property upon $SCROLL(health), 90, $SCROLL(damage_taken)
+entity_familiar.set_property upon $SCROLL(health), 95, $SCROLL(healing_potion)
+entity_familiar.set_property upon $SCROLL(health), 85, $SCROLL(more_damage)
+
+# Check property history
+bind health_history = entity_familiar.get_property_history upon $SCROLL(health), 5
+scry $SCROLL(Health change history count: ) added to health_history.length
+
+# Test 5: State snapshots
+scry $SCROLL(Testing state snapshots...)
+
+# Create a snapshot
+bind snapshot_id = entity_familiar.create_snapshot upon $SCROLL(test_snapshot)
+scry $SCROLL(Created snapshot: ) added to snapshot_id
+
+# Modify properties
+entity_familiar.set_property upon $SCROLL(health), 50
+entity_familiar.set_property upon $SCROLL(level), 6
+
+scry $SCROLL(Health after changes: ) added to entity_familiar.get_property upon $SCROLL(health)
+scry $SCROLL(Level after changes: ) added to entity_familiar.get_property upon $SCROLL(level)
+
+# Restore snapshot
+bind restore_result = entity_familiar.restore_snapshot upon snapshot_id
+scry $SCROLL(Snapshot restored: ) added to restore_result
+
+scry $SCROLL(Health after restore: ) added to entity_familiar.get_property upon $SCROLL(health)
+scry $SCROLL(Level after restore: ) added to entity_familiar.get_property upon $SCROLL(level)
+
+# Test 6: AI familiar goals and actions
+scry $SCROLL(Testing AI familiar goals and actions...)
+
+# Add a goal to the AI familiar
+ai_familiar.add_goal upon $SCROLL(survive), 10, $SCROLL(lambda world: world.get('health', 0) > 50)
+
+# Add actions for the goal
+ai_familiar.add_action upon $SCROLL(survive), $SCROLL(heal), $SCROLL(lambda world: world.update({'health': world.get('health', 0) + 10}))
+ai_familiar.add_action upon $SCROLL(survive), $SCROLL(rest), $SCROLL(lambda world: world.update({'energy': world.get('energy', 0) + 5}))
+
+# Update world state
+ai_familiar.update_world_state upon $SCROLL(health), 30
+ai_familiar.update_world_state upon $SCROLL(energy), 80
+
+# Plan and execute
+ai_familiar.plan_and_execute upon
+
+# Test 7: Socket-based communication
+scry $SCROLL(Testing socket-based communication...)
+
+# Link familiars for communication
+link_familiars upon entity_familiar, ai_familiar, $SCROLL(bidirectional)
+
+# Send a message from entity to AI
+send_familiar_message upon entity_familiar, $SCROLL(Status update: health low)
+
+# Test 8: Property watchers and notifications
+scry $SCROLL(Testing property watchers...)
+
+# Add a property watcher (this would normally be a callback function)
+# For testing, we'll simulate the watcher effect
+entity_familiar.set_property upon $SCROLL(watched_property), $SCROLL(initial_value)
+entity_familiar.set_property upon $SCROLL(watched_property), $SCROLL(updated_value)
+
+# Test 9: Familiar status and statistics
+scry $SCROLL(Testing familiar status...)
+
+bind entity_status = entity_familiar.get_status upon
+scry $SCROLL(Entity familiar status - Properties: ) added to entity_status.property_count
+scry $SCROLL(Entity familiar status - Snapshots: ) added to entity_status.snapshot_count
+scry $SCROLL(Entity familiar status - Sockets: ) added to entity_status.socket_count
+
+bind ai_status = ai_familiar.get_status upon
+scry $SCROLL(AI familiar status - Goals: ) added to ai_status.goal_count
+scry $SCROLL(AI familiar status - Actions: ) added to ai_status.action_count
+scry $SCROLL(AI familiar status - Decisions: ) added to ai_status.decision_count
+
+# Test 10: Error handling and edge cases
+scry $SCROLL(Testing error handling...)
+
+# Try to access non-existent property
+bind missing_prop = entity_familiar.get_property upon $SCROLL(non_existent), $SCROLL(default_value)
+scry $SCROLL(Missing property result: ) added to missing_prop
+
+# Try to restore non-existent snapshot
+bind restore_fail = entity_familiar.restore_snapshot upon $SCROLL(non_existent_snapshot)
+scry $SCROLL(Restore non-existent snapshot: ) added to restore_fail
+
+scry $SCROLL(=== Phase 2 Communication Test Complete ===)
+scry $SCROLL(Successfully tested:)
+scry $SCROLL(- Familiar creation and messaging setup)
+scry $SCROLL(- Property management with change tracking)
+scry $SCROLL(- Property history and snapshots)
+scry $SCROLL(- AI goal and action systems)
+scry $SCROLL(- Socket-based communication)
+scry $SCROLL(- Error handling and edge cases)
+scry $SCROLL(Phase 2 foundation is ready for Phase 3!)

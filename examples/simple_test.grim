@@ -1,0 +1,8 @@
+# Simple test to isolate parsing issue
+scry $SCROLL(=== Simple Test ===)
+
+# Test just the summon function
+bind entity_familiar = summon upon $SCROLL(Entity), $SCROLL(test_entity)
+scry $SCROLL(Entity familiar created)
+
+scry $SCROLL(=== Test Complete ===)

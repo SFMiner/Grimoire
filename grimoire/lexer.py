@@ -116,7 +116,6 @@ class GrimoireLexer:
     # Keywords mapping
     KEYWORDS = {
         'conjure': TokenType.CONJURE,
-        'summon': TokenType.SUMMON,
         'bind': TokenType.BIND,
         'ritual': TokenType.RITUAL,
         'artifact': TokenType.ARTIFACT,
