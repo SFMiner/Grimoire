@@ -723,7 +723,7 @@ class GrimoireParser:
             if not isinstance(stmt, ExpressionStatement):
                 # Check if the next line is at the same or lesser indentation
                 # For now, we'll use a simple approach: stop if we see certain tokens
-                if (self.check(TokenType.ELSE) or (self.check(TokenType.LEST) or 
+                if (self.check(TokenType.ELSE) or self.check(TokenType.LEST) or 
                     self.check(TokenType.IDENTIFIER) or
                     self.check_next_declaration()):
                     break

@@ -9,8 +9,11 @@ enabling more expressive and thematically appropriate code.
 from enum import Enum, auto
 from typing import Dict, List, Set, Optional, TYPE_CHECKING
 
-if TYPE_CHECKING:
+try:
     from .lexer import TokenType
+except ImportError:
+    # Fallback for when lexer is not available
+    TokenType = None
 
 
 class MagicSchool(Enum):
@@ -158,24 +161,27 @@ class KeywordVariants:
         self.multiword_to_token = {}
         
         # Map single-word variants to token types
-        for concept, schools in self.variants.items():
-            token_type = getattr(TokenType, concept)
-            for school, keywords in schools.items():
-                for keyword in keywords:
-                    self.keyword_to_token[keyword] = token_type
-        
-        # Map multi-word variants to token types
-        for concept, schools in self.multiword_variants.items():
-            token_type = getattr(TokenType, concept)
-            for school, keywords in schools.items():
-                for keyword in keywords:
-                    self.multiword_to_token[keyword] = token_type
+        if TokenType is not None:
+            for concept, schools in self.variants.items():
+                if hasattr(TokenType, concept):
+                    token_type = getattr(TokenType, concept)
+                    for school, keywords in schools.items():
+                        for keyword in keywords:
+                            self.keyword_to_token[keyword] = token_type
+            
+            # Map multi-word variants to token types
+            for concept, schools in self.multiword_variants.items():
+                if hasattr(TokenType, concept):
+                    token_type = getattr(TokenType, concept)
+                    for school, keywords in schools.items():
+                        for keyword in keywords:
+                            self.multiword_to_token[keyword] = token_type
     
-    def get_token_type(self, keyword: str) -> Optional['TokenType']:
+    def get_token_type(self, keyword: str):
         """Get the token type for a keyword variant."""
         return self.keyword_to_token.get(keyword)
     
-    def get_multiword_token_type(self, phrase: str) -> Optional['TokenType']:
+    def get_multiword_token_type(self, phrase: str):
         """Get the token type for a multi-word phrase variant."""
         return self.multiword_to_token.get(phrase)
     
@@ -202,11 +208,11 @@ class KeywordVariants:
         """Check if a multi-word phrase is valid in any school."""
         return phrase in self.multiword_to_token
     
-    def get_all_keywords(self) -> Dict[str, 'TokenType']:
+    def get_all_keywords(self):
         """Get all single-word keyword mappings."""
         return self.keyword_to_token.copy()
     
-    def get_all_multiwords(self) -> Dict[str, 'TokenType']:
+    def get_all_multiwords(self):
         """Get all multi-word phrase mappings."""
         return self.multiword_to_token.copy()
     
