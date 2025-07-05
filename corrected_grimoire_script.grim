@@ -1,0 +1,72 @@
+# Corrected Grimoire Tag System Demo
+# All syntax issues have been fixed
+
+scry $SCROLL(Welcome to the Corrected Tag System Adventure)
+
+# Create wizard player using conjure_familiar
+bind wizard_player = conjure_familiar upon $SCROLL(Eldric the Wise)
+scry $SCROLL(Created wizard player: ) added to wizard_player.name
+
+# Add tags using correct syntax (upon instead of parentheses)
+wizard_player.add_tag upon $TAG(type:familiar)
+wizard_player.add_tag upon $TAG(role:player)
+wizard_player.add_tag upon $TAG(class:wizard)
+wizard_player.add_tag upon $TAG(domain:magic)
+wizard_player.add_tag upon $TAG(ability:spellcasting)
+wizard_player.add_tag upon $TAG(ability:fireball)
+wizard_player.add_tag upon $TAG(ability:heal)
+wizard_player.add_tag upon $TAG(ability:teleport)
+wizard_player.add_tag upon $TAG(behavior:curious)
+wizard_player.add_tag upon $TAG(status:healthy)
+wizard_player.add_tag upon $TAG(level:novice)
+wizard_player.add_tag upon $TAG(resource:mana)
+wizard_player.add_tag upon $TAG(specialty:evocation)
+wizard_player.add_tag upon $TAG(permission:cast_spells)
+wizard_player.add_tag upon $TAG(permission:use_items)
+
+scry $SCROLL(Wizard created and tagged successfully)
+
+# Create monster using same approach
+bind orc_monster = conjure_familiar upon $SCROLL(Grashk the Brutal)
+orc_monster.add_tag upon $TAG(type:familiar)
+orc_monster.add_tag upon $TAG(role:enemy)
+orc_monster.add_tag upon $TAG(species:orc)
+orc_monster.add_tag upon $TAG(domain:combat)
+orc_monster.add_tag upon $TAG(ability:melee_attack)
+orc_monster.add_tag upon $TAG(ability:intimidate)
+orc_monster.add_tag upon $TAG(weakness:magic)
+
+scry $SCROLL(Orc monster created and tagged successfully)
+
+# Create loot item
+bind fire_staff = conjure_familiar upon $SCROLL(Staff of Eternal Flames)
+fire_staff.add_tag upon $TAG(type:item)
+fire_staff.add_tag upon $TAG(category:weapon)
+fire_staff.add_tag upon $TAG(rarity:rare)
+fire_staff.add_tag upon $TAG(element:fire)
+fire_staff.add_tag upon $TAG(requirement:wizard)
+
+scry $SCROLL(Fire staff created and tagged successfully)
+
+# Test tag checking using correct syntax
+should wizard_player.has_tag upon $TAG(ability:fireball):
+    scry $SCROLL(✓ Wizard can cast fireball!)
+lest:
+    scry $SCROLL(✗ Wizard cannot cast fireball)
+
+should wizard_player.bears_mark upon $TAG(class:wizard):
+    scry $SCROLL(✓ Wizard bears the wizard class mark!)
+lest:
+    scry $SCROLL(✗ Wizard does not bear wizard class mark)
+
+should orc_monster.has_tag upon $TAG(weakness:magic):
+    scry $SCROLL(✓ Orc has weakness to magic!)
+lest:
+    scry $SCROLL(✗ Orc does not have weakness to magic)
+
+should fire_staff.bears_mark upon $TAG(element:fire):
+    scry $SCROLL(✓ Fire staff bears the fire element mark!)
+lest:
+    scry $SCROLL(✗ Fire staff does not bear fire element mark)
+
+scry $SCROLL(All tag system tests completed successfully!)

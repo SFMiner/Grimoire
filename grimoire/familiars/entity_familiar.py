@@ -83,6 +83,7 @@ class EntityFamiliar(GrimoireFamiliar):
         # Create empty capabilities dict for base class
         capabilities = {}
         super().__init__(name, "Entity", capabilities)
+        
         self.familiar_type = FamiliarType.ENTITY
         # Override capabilities with our set (the base class expects a dict)
         self.capability_types = {
@@ -102,11 +103,15 @@ class EntityFamiliar(GrimoireFamiliar):
         
         # Tag system integration
         if TAG_SYSTEM_AVAILABLE:
+            from ..tag_registry import TaggedEntity as TaggedEntityClass
             self.tag_set = TagSet()
+            # Create a tagged entity representation
+            self._tagged_entity = TaggedEntityClass(name, "familiar")
             # Register this familiar as a tagged entity
-            tag_registry.register_entity(self)
+            tag_registry.register_entity(self._tagged_entity)
         else:
             self.tag_set = None
+            self._tagged_entity = None
         
         # Socket setup for property notifications
         self.setup_property_sockets()
@@ -533,3 +538,44 @@ class EntityFamiliar(GrimoireFamiliar):
     
     def __repr__(self) -> str:
         return f"EntityFamiliar(name='{self.name}', type={self.familiar_type.name}, properties={len(self.properties)})"
+    
+    # Tag system methods - delegate to the internal tagged entity
+    def add_tag(self, tag) -> bool:
+        """Add a tag to this familiar."""
+        if TAG_SYSTEM_AVAILABLE and self._tagged_entity:
+            return self._tagged_entity.add_tag(tag)
+        return False
+    
+    def mark(self, tag) -> bool:
+        """Add a mark (tag) to this familiar."""
+        return self.add_tag(tag)
+    
+    def remove_tag(self, tag_pattern: str) -> int:
+        """Remove tags matching the pattern."""
+        if TAG_SYSTEM_AVAILABLE and self._tagged_entity:
+            return self._tagged_entity.remove_tag(tag_pattern)
+        return 0
+    
+    def unmark(self, tag_pattern: str) -> int:
+        """Remove marks (tags) matching the pattern."""
+        return self.remove_tag(tag_pattern)
+    
+    def has_tag(self, pattern: str) -> bool:
+        """Check if this familiar has a tag matching the pattern."""
+        if TAG_SYSTEM_AVAILABLE and self._tagged_entity:
+            return self._tagged_entity.has_tag(pattern)
+        return False
+    
+    def bears_mark(self, pattern: str) -> bool:
+        """Check if this familiar bears a mark (tag) matching the pattern."""
+        return self.has_tag(pattern)
+    
+    def get_tags(self):
+        """Get all tags for this familiar."""
+        if TAG_SYSTEM_AVAILABLE and self._tagged_entity:
+            return self._tagged_entity.tags
+        return []
+    
+    def get_marks(self):
+        """Get all marks (tags) for this familiar."""
+        return self.get_tags()
