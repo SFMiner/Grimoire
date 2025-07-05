@@ -32,7 +32,7 @@ from .parser import (
     Program, Statement, Expression, ASTNode,
     LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression,
     CallExpression, PropertyAccessExpression, ConjureExpression, PortalExpression,
-    PropertyAssignmentExpression, ExpressionStatement, BindStatement, ScryStatement,
+    PropertyAssignmentExpression, TagLiteralExpression, ExpressionStatement, BindStatement, ScryStatement,
     IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
     BreakStatement, ContinueStatement,
     RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
@@ -2942,6 +2942,11 @@ class GrimoireInterpreter:
                     raise RuntimeError("Only instances have properties")
             else:
                 raise RuntimeError("Invalid assignment target")
+        
+        elif isinstance(expression, TagLiteralExpression):
+            # Handle tag literals ($TAG(category:value))
+            from .tag_system import create_tag
+            return create_tag(expression.category, expression.value)
         
         else:
             raise RuntimeError(f"Unknown expression type: {type(expression)}")
