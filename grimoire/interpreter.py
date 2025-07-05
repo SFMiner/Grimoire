@@ -2220,6 +2220,86 @@ class GrimoireInterpreter:
             from grimoire.goals import list_goal_artifacts
             return list_goal_artifacts()
 
+        # Phase 5: Developer Experience built-ins
+        def debug_familiar_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("debug_familiar expects 1 argument (familiar_name)")
+            
+            familiar_name = arguments[0]
+            familiar = self.familiars.get(familiar_name)
+            
+            if not familiar:
+                raise RuntimeError(f"Familiar '{familiar_name}' not found")
+            
+            # Get comprehensive debug info
+            debug_info = {
+                "name": familiar.name,
+                "true_name": familiar.true_name,
+                "familiar_type": str(familiar.familiar_type),
+                "state": familiar.state,
+                "sockets": list(familiar.sockets.keys()) if hasattr(familiar, 'sockets') else [],
+                "activity_log": familiar.get_report() if hasattr(familiar, 'get_report') else []
+            }
+            
+            # Add type-specific debug info
+            if hasattr(familiar, 'get_ai_status'):
+                debug_info["ai_status"] = familiar.get_ai_status()
+            
+            if hasattr(familiar, 'properties'):
+                debug_info["properties"] = familiar.properties
+            
+            return debug_info
+
+        def profile_ai_builtin(interpreter, arguments):
+            if len(arguments) != 1:
+                raise RuntimeError("profile_ai expects 1 argument (familiar_name)")
+            
+            familiar_name = arguments[0]
+            familiar = self.familiars.get(familiar_name)
+            
+            if not familiar:
+                raise RuntimeError(f"Familiar '{familiar_name}' not found")
+            
+            if not hasattr(familiar, 'get_ai_status'):
+                raise RuntimeError(f"Familiar '{familiar_name}' is not an AI familiar")
+            
+            # Get AI profiling information
+            try:
+                from grimoire.profiler import get_ai_profiler
+                ai_profiler = get_ai_profiler()
+                return ai_profiler.get_performance_insights(familiar_name)
+            except ImportError:
+                return {"error": "Profiler not available"}
+
+        def create_player_builtin(interpreter, arguments):
+            if len(arguments) < 1:
+                raise RuntimeError("create_player expects at least 1 argument (name)")
+            
+            name = arguments[0]
+            player_data = arguments[1] if len(arguments) > 1 else None
+            
+            try:
+                from grimoire.standard_library import PlayerFamiliar
+                player = PlayerFamiliar(name, player_data)
+                self.familiars[name] = player
+                return player
+            except ImportError:
+                raise RuntimeError("Standard library not available")
+
+        def create_timer_builtin(interpreter, arguments):
+            if len(arguments) < 1:
+                raise RuntimeError("create_timer expects 1 argument (name)")
+            
+            name = arguments[0]
+            
+            try:
+                from grimoire.standard_library import TimerFamiliar
+                timer = TimerFamiliar(name)
+                self.familiars[name] = timer
+                return timer
+            except ImportError:
+                raise RuntimeError("Standard library not available")
+
         self.globals.define("scry", scry_builtin)
         self.globals.define("summon", summon_builtin)
         self.globals.define("create_archon", create_archon_builtin)
@@ -2270,6 +2350,10 @@ class GrimoireInterpreter:
         self.globals.define("evaluate_goal", evaluate_goal_builtin)
         self.globals.define("get_goal_urgency", get_goal_urgency_builtin)
         self.globals.define("list_goals", list_goals_builtin)
+        self.globals.define("debug_familiar", debug_familiar_builtin)
+        self.globals.define("profile_ai", profile_ai_builtin)
+        self.globals.define("create_player", create_player_builtin)
+        self.globals.define("create_timer", create_timer_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
