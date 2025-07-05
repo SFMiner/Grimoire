@@ -246,6 +246,10 @@ class TagSet:
         """Alias for add_tag using mystical terminology."""
         return self.add_tag(tag)
     
+    def set_mark(self, tag: Tag) -> bool:
+        """Alias for add_tag using mystical terminology."""
+        return self.add_tag(tag)
+    
     def remove_tag(self, tag_pattern: str) -> int:
         """
         Remove tags matching a pattern.

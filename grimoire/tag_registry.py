@@ -123,6 +123,10 @@ class TaggedEntity:
         """Alias for add_tag using mystical terminology."""
         return self.add_tag(tag)
     
+    def set_mark(self, tag: Tag) -> bool:
+        """Alias for add_tag using mystical terminology."""
+        return self.add_tag(tag)
+    
     def unmark(self, tag_pattern: str) -> int:
         """Alias for remove_tag using mystical terminology."""
         return self.remove_tag(tag_pattern)

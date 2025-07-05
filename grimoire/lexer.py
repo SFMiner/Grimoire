@@ -66,6 +66,20 @@ class TokenType(Enum):
     ESCALATE = auto()       # Anomaly escalation
     TAG = auto()            # Tag literal $TAG(category:value)
     
+    # Container Types
+    TOME = auto()           # Array/List literals $TOME(...)
+    GRIMOIRE = auto()       # Dictionary/Map literals $GRIMOIRE(...)
+    CODEX = auto()          # Set literals $CODEX(...)
+    CHRONICLE = auto()      # Ordered collection literals $CHRONICLE(...)
+    VAULT = auto()          # Tuple literals $VAULT(...)
+    
+    # Container Operations
+    INSCRIBE = auto()       # Add/append to container
+    EXTRACT = auto()        # Remove from container
+    SEEK = auto()           # Search/find in container
+    MANIFEST = auto()       # Create/initialize container
+    ENUMERATE = auto()      # List/iterate container contents
+    
     # Control Flow
     IF = auto()             # if statement (standard)
     SHOULD = auto()         # if statement (magical)
@@ -163,6 +177,14 @@ class GrimoireLexer:
         'anomaly': TokenType.ANOMALY,
         'detect': TokenType.DETECT,
         'escalate': TokenType.ESCALATE,
+        
+        # Container operations
+        'inscribe': TokenType.INSCRIBE,
+        'extract': TokenType.EXTRACT,
+        'seek': TokenType.SEEK,
+        'manifest': TokenType.MANIFEST,
+        'enumerate': TokenType.ENUMERATE,
+        
         'arcana': TokenType.ARCANA,
         'in': TokenType.IN,
         'and': TokenType.AND,
@@ -311,7 +333,7 @@ class GrimoireLexer:
             while self.peek() != '\n' and not self.is_at_end():
                 self.advance()
         elif c == '$':
-            # Handle $SCROLL() and $TAG() literals
+            # Handle $SCROLL(), $TAG(), and container literals
             if self.match_word('SCROLL'):
                 # Advance past 'SCROLL'
                 for _ in range(6):  # len('SCROLL')
@@ -322,6 +344,31 @@ class GrimoireLexer:
                 for _ in range(3):  # len('TAG')
                     self.advance()
                 self.tag_literal()
+            elif self.match_word('TOME'):
+                # Advance past 'TOME'
+                for _ in range(4):  # len('TOME')
+                    self.advance()
+                self.tome_literal()
+            elif self.match_word('GRIMOIRE'):
+                # Advance past 'GRIMOIRE'
+                for _ in range(8):  # len('GRIMOIRE')
+                    self.advance()
+                self.grimoire_literal()
+            elif self.match_word('CODEX'):
+                # Advance past 'CODEX'
+                for _ in range(5):  # len('CODEX')
+                    self.advance()
+                self.codex_literal()
+            elif self.match_word('CHRONICLE'):
+                # Advance past 'CHRONICLE'
+                for _ in range(9):  # len('CHRONICLE')
+                    self.advance()
+                self.chronicle_literal()
+            elif self.match_word('VAULT'):
+                # Advance past 'VAULT'
+                for _ in range(5):  # len('VAULT')
+                    self.advance()
+                self.vault_literal()
         elif c.isalpha() or c == '_':
             # Handle identifiers and keywords
             self.identifier()
@@ -436,6 +483,138 @@ class GrimoireLexer:
         
         category, value = content.split(':', 1)
         self.add_token(TokenType.TAG, (category.strip(), value.strip()))
+    
+    def tome_literal(self) -> None:
+        """Handle $TOME() array literals."""
+        if not self.match('('):
+            raise SyntaxError(f"Expected '(' after $TOME at line {self.line}")
+        
+        # For now, just consume the entire literal as a string
+        # The parser will handle the actual parsing of elements
+        content = ""
+        paren_count = 1
+        
+        while paren_count > 0 and not self.is_at_end():
+            char = self.advance()
+            if char == '(':
+                paren_count += 1
+            elif char == ')':
+                paren_count -= 1
+            elif char == '\n':
+                self.line += 1
+                self.column = 1
+            
+            if paren_count > 0:  # Don't include the final closing paren
+                content += char
+        
+        if self.is_at_end():
+            raise SyntaxError(f"Unterminated tome literal at line {self.line}")
+        
+        self.add_token(TokenType.TOME, content.strip())
+    
+    def grimoire_literal(self) -> None:
+        """Handle $GRIMOIRE() dictionary literals."""
+        if not self.match('('):
+            raise SyntaxError(f"Expected '(' after $GRIMOIRE at line {self.line}")
+        
+        content = ""
+        paren_count = 1
+        
+        while paren_count > 0 and not self.is_at_end():
+            char = self.advance()
+            if char == '(':
+                paren_count += 1
+            elif char == ')':
+                paren_count -= 1
+            elif char == '\n':
+                self.line += 1
+                self.column = 1
+            
+            if paren_count > 0:  # Don't include the final closing paren
+                content += char
+        
+        if self.is_at_end():
+            raise SyntaxError(f"Unterminated grimoire literal at line {self.line}")
+        
+        self.add_token(TokenType.GRIMOIRE, content.strip())
+    
+    def codex_literal(self) -> None:
+        """Handle $CODEX() set literals."""
+        if not self.match('('):
+            raise SyntaxError(f"Expected '(' after $CODEX at line {self.line}")
+        
+        content = ""
+        paren_count = 1
+        
+        while paren_count > 0 and not self.is_at_end():
+            char = self.advance()
+            if char == '(':
+                paren_count += 1
+            elif char == ')':
+                paren_count -= 1
+            elif char == '\n':
+                self.line += 1
+                self.column = 1
+            
+            if paren_count > 0:  # Don't include the final closing paren
+                content += char
+        
+        if self.is_at_end():
+            raise SyntaxError(f"Unterminated codex literal at line {self.line}")
+        
+        self.add_token(TokenType.CODEX, content.strip())
+    
+    def chronicle_literal(self) -> None:
+        """Handle $CHRONICLE() ordered collection literals."""
+        if not self.match('('):
+            raise SyntaxError(f"Expected '(' after $CHRONICLE at line {self.line}")
+        
+        content = ""
+        paren_count = 1
+        
+        while paren_count > 0 and not self.is_at_end():
+            char = self.advance()
+            if char == '(':
+                paren_count += 1
+            elif char == ')':
+                paren_count -= 1
+            elif char == '\n':
+                self.line += 1
+                self.column = 1
+            
+            if paren_count > 0:  # Don't include the final closing paren
+                content += char
+        
+        if self.is_at_end():
+            raise SyntaxError(f"Unterminated chronicle literal at line {self.line}")
+        
+        self.add_token(TokenType.CHRONICLE, content.strip())
+    
+    def vault_literal(self) -> None:
+        """Handle $VAULT() tuple literals."""
+        if not self.match('('):
+            raise SyntaxError(f"Expected '(' after $VAULT at line {self.line}")
+        
+        content = ""
+        paren_count = 1
+        
+        while paren_count > 0 and not self.is_at_end():
+            char = self.advance()
+            if char == '(':
+                paren_count += 1
+            elif char == ')':
+                paren_count -= 1
+            elif char == '\n':
+                self.line += 1
+                self.column = 1
+            
+            if paren_count > 0:  # Don't include the final closing paren
+                content += char
+        
+        if self.is_at_end():
+            raise SyntaxError(f"Unterminated vault literal at line {self.line}")
+        
+        self.add_token(TokenType.VAULT, content.strip())
     
     def number(self) -> None:
         """Handle numeric literals."""
