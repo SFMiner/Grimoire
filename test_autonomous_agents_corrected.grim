@@ -1,0 +1,70 @@
+# Test: Basic goal-setting behavior for an autonomous agent
+# Tests agent creation, goal management, and autonomous decision-making
+
+# Create a goal artifact for programmatic goal definition
+artifact PatrolGoal:
+	essence target_location = $SCROLL(Unknown)
+	essence patrol_completed = false
+	essence patrol_progress = 0
+	
+	ritual initialize(location):
+		bind self.target_location = location
+		bind self.patrol_completed = false
+		bind self.patrol_progress = 0
+	
+	ritual evaluate_satisfaction():
+		should self.patrol_progress is not lesser than 100:
+			bind self.patrol_completed = true
+			return 1.0
+		lest:
+			return self.patrol_progress divided by 100.0
+
+# Create an autonomous agent with goal-setting capabilities
+artifact AutonomousAgent:
+	essence agent_name = $SCROLL(Agent)
+	essence current_goal = null
+	essence energy = 100
+	
+	ritual initialize(name):
+		bind self.agent_name = name
+		bind self.energy = 100
+	
+	ritual set_goal(goal):
+		bind self.current_goal = goal
+		scry $SCROLL(Goal set for agent)
+	
+	ritual update_behavior():
+		should self.current_goal is not equal to null:
+			# Simulate making progress toward goal
+			bind self.current_goal.patrol_progress = self.current_goal.patrol_progress added to 25
+			bind self.energy = self.energy subtracted from 10
+			return self.current_goal.evaluate_satisfaction upon
+		lest:
+			return 0.0
+
+# Create and test the autonomous agent
+bind scout_agent = conjure AutonomousAgent upon
+scout_agent.initialize upon $SCROLL(Scout)
+
+# Create a patrol goal
+bind patrol_mission = conjure PatrolGoal upon
+patrol_mission.initialize upon $SCROLL(North Gate)
+
+# Set the goal for the agent
+scout_agent.set_goal upon patrol_mission
+scry $SCROLL(true) # Expected: true
+
+# Test autonomous behavior updates
+bind progress1 = scout_agent.update_behavior upon
+scry progress1 # Expected: 0.25
+
+bind progress2 = scout_agent.update_behavior upon
+scry progress2 # Expected: 0.5
+
+# Check if goal is completed after sufficient progress
+scout_agent.update_behavior upon
+bind final_satisfaction = scout_agent.update_behavior upon
+scry final_satisfaction # Expected: 1.0
+
+# Verify goal completion status
+scry patrol_mission.patrol_completed # Expected: true
