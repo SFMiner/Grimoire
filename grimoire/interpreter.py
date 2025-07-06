@@ -32,7 +32,8 @@ from .parser import (
     Program, Statement, Expression, ASTNode,
     LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression,
     CallExpression, PropertyAccessExpression, ConjureExpression, PortalExpression,
-    PropertyAssignmentExpression, TagLiteralExpression, ExpressionStatement, BindStatement, ScryStatement,
+    PropertyAssignmentExpression, TagLiteralExpression, ContainerLiteralExpression, 
+    ExpressionStatement, BindStatement, ScryStatement,
     IfStatement, WhileStatement, ForStatement, BlockStatement, ReturnStatement,
     BreakStatement, ContinueStatement,
     RitualStatement, ArtifactStatement, FamiliarStatement, ArchonStatement, SpiritStatement,
@@ -45,6 +46,7 @@ from .ai_system import (
     create_utility_functions_for_agent
 )
 from .planes import PlaneManager, PlaneProperties, PlaneType, get_plane_manager
+from .containers import Tome, Grimoire, Codex, Chronicle, Vault
 
 
 # =============================================================================
@@ -1676,6 +1678,30 @@ class BoundMethod:
         return self.method.call(interpreter, [self.instance] + arguments)
 
 
+@dataclass
+class BoundFamiliarMethod:
+    """Represents a method bound to a familiar."""
+    familiar: GrimoireFamiliar
+    method: Any  # The actual method object
+    method_name: str
+    
+    def call(self, interpreter: 'GrimoireInterpreter', arguments: List[Any]) -> Any:
+        """Execute the bound familiar method."""
+        return self.method(*arguments)
+
+
+@dataclass
+class BoundContainerMethod:
+    """Represents a method bound to a container."""
+    container: Any  # The container object
+    method: Any  # The actual method object
+    method_name: str
+    
+    def call(self, interpreter: 'GrimoireInterpreter', arguments: List[Any]) -> Any:
+        """Execute the bound container method."""
+        return self.method(*arguments)
+
+
 class Environment:
     """Manages variable scoping and symbol tables."""
     
@@ -2645,6 +2671,58 @@ class GrimoireInterpreter:
         self.globals.define("set_mark", set_mark_builtin)
         self.globals.define("seek_mark", seek_mark_builtin)
         self.globals.define("register_tagged_entity", register_tagged_entity_builtin)
+        
+        # =====================================================================
+        # Container System Built-ins
+        # =====================================================================
+        
+        def create_tome_builtin(interpreter, arguments):
+            """Create a new tome (array/list) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, list):
+                raise RuntimeError("create_tome expects optional list argument")
+            return Tome(initial_data)
+        
+        def create_grimoire_builtin(interpreter, arguments):
+            """Create a new grimoire (dictionary/map) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, dict):
+                raise RuntimeError("create_grimoire expects optional dict argument")
+            return Grimoire(initial_data)
+        
+        def create_codex_builtin(interpreter, arguments):
+            """Create a new codex (set) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, (list, set)):
+                raise RuntimeError("create_codex expects optional list or set argument")
+            # Convert list to set if needed
+            if isinstance(initial_data, list):
+                initial_data = set(initial_data)
+            return Codex(initial_data)
+        
+        def create_chronicle_builtin(interpreter, arguments):
+            """Create a new chronicle (ordered list) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, list):
+                raise RuntimeError("create_chronicle expects optional list argument")
+            return Chronicle(initial_data)
+        
+        def create_vault_builtin(interpreter, arguments):
+            """Create a new vault (immutable tuple) container."""
+            initial_data = arguments[0] if arguments else None
+            if initial_data and not isinstance(initial_data, (list, tuple)):
+                raise RuntimeError("create_vault expects optional list or tuple argument")
+            # Convert list to tuple if needed
+            if isinstance(initial_data, list):
+                initial_data = tuple(initial_data)
+            return Vault(initial_data)
+        
+        # Register container system built-ins
+        self.globals.define("create_tome", create_tome_builtin)
+        self.globals.define("create_grimoire", create_grimoire_builtin)
+        self.globals.define("create_codex", create_codex_builtin)
+        self.globals.define("create_chronicle", create_chronicle_builtin)
+        self.globals.define("create_vault", create_vault_builtin)
     
     def _grimoire_to_string(self, value: Any) -> str:
         """Convert a Grimoire value to its string representation."""
@@ -2959,6 +3037,10 @@ class GrimoireInterpreter:
                 return callee.call(self, arguments)
             elif isinstance(callee, BoundMethod):
                 return callee.call(self, arguments)
+            elif isinstance(callee, BoundFamiliarMethod):
+                return callee.call(self, arguments)
+            elif isinstance(callee, BoundContainerMethod):
+                return callee.call(self, arguments)
             elif callable(callee):  # Built-in function
                 return callee(self, arguments)
             else:
@@ -2970,10 +3052,26 @@ class GrimoireInterpreter:
             if isinstance(obj, GrimoireInstance):
                 return obj.get(expression.property)
             elif isinstance(obj, GrimoireFamiliar):
-                # Handle familiar property access for inquiries
-                return obj.inquire(expression.property)
+                # Check if this is a method call on a familiar
+                if hasattr(obj, expression.property) and callable(getattr(obj, expression.property)):
+                    # Return a bound method for familiar methods
+                    method = getattr(obj, expression.property)
+                    return BoundFamiliarMethod(obj, method, expression.property)
+                else:
+                    # Handle familiar property access for inquiries
+                    return obj.inquire(expression.property)
             else:
-                raise RuntimeError("Only instances and familiars have properties")
+                # Check if this is a container with methods
+                from .containers import GrimoireContainer
+                if isinstance(obj, GrimoireContainer):
+                    # Check if the property is a method on the container
+                    if hasattr(obj, expression.property) and callable(getattr(obj, expression.property)):
+                        method = getattr(obj, expression.property)
+                        return BoundContainerMethod(obj, method, expression.property)
+                    else:
+                        raise RuntimeError(f"Container has no property '{expression.property}'")
+                else:
+                    raise RuntimeError("Only instances, familiars, and containers have properties")
         
         elif isinstance(expression, ConjureExpression):
             artifact_class = self.environment.get(expression.artifact_type)
@@ -3009,6 +3107,29 @@ class GrimoireInterpreter:
             # Handle tag literals ($TAG(category:value))
             from .tag_system import create_tag
             return create_tag(expression.category, expression.value)
+        
+        elif isinstance(expression, ContainerLiteralExpression):
+            # Handle container literals ($TOME(), $GRIMOIRE(), etc.)
+            from .containers import Tome, Grimoire, Codex, Chronicle, Vault
+            
+            # Evaluate all elements
+            elements = [self.evaluate(elem) for elem in expression.elements]
+            
+            # Create the appropriate container type
+            if expression.container_type == 'tome':
+                return Tome(elements)
+            elif expression.container_type == 'grimoire':
+                # For grimoire, elements should be key-value pairs
+                # For now, create empty grimoire and let user add elements
+                return Grimoire()
+            elif expression.container_type == 'codex':
+                return Codex(set(elements))  # Convert list to set
+            elif expression.container_type == 'chronicle':
+                return Chronicle(elements)
+            elif expression.container_type == 'vault':
+                return Vault(tuple(elements))  # Convert list to tuple
+            else:
+                raise RuntimeError(f"Unknown container type: {expression.container_type}")
         
         else:
             raise RuntimeError(f"Unknown expression type: {type(expression)}")
