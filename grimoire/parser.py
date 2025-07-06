@@ -67,6 +67,13 @@ class TagLiteralExpression(Expression):
 
 
 @dataclass
+class ContainerLiteralExpression(Expression):
+    """Represents container literals ($TOME(), $GRIMOIRE(), etc.)."""
+    container_type: str  # 'tome', 'grimoire', 'codex', 'chronicle', 'vault'
+    elements: List[Expression]
+
+
+@dataclass
 class IdentifierExpression(Expression):
     """Represents variable/function identifiers."""
     name: str
@@ -1066,7 +1073,21 @@ class GrimoireParser:
                 
                 expr = CallExpression(expr, arguments, upon_token)
             elif self.match(TokenType.DOT):
-                name = self.consume(TokenType.IDENTIFIER, "Expected property name after '.'").lexeme
+                # Allow both identifiers and reserved keywords as property names
+                if self.check(TokenType.IDENTIFIER):
+                    name = self.advance().lexeme
+                elif self.check(TokenType.INSCRIBE):
+                    name = self.advance().lexeme
+                elif self.check(TokenType.EXTRACT):
+                    name = self.advance().lexeme
+                elif self.check(TokenType.SEEK):
+                    name = self.advance().lexeme
+                elif self.check(TokenType.MANIFEST):
+                    name = self.advance().lexeme
+                elif self.check(TokenType.ENUMERATE):
+                    name = self.advance().lexeme
+                else:
+                    raise ParseError(self.peek(), "Expected property name after '.'")
                 expr = PropertyAccessExpression(expr, name)
             else:
                 break
@@ -1088,6 +1109,45 @@ class GrimoireParser:
             # Parse tag literal: $TAG(category:value)
             category, value = self.previous().literal
             return TagLiteralExpression(category, value)
+        
+        # Parse container literals: $TOME(), $GRIMOIRE(), etc.
+        if self.match(TokenType.TOME, TokenType.GRIMOIRE, TokenType.CODEX, 
+                     TokenType.CHRONICLE, TokenType.VAULT):
+            # Extract container type from token type, not lexeme
+            token_type = self.previous().type
+            if token_type == TokenType.TOME:
+                container_type = 'tome'
+            elif token_type == TokenType.GRIMOIRE:
+                container_type = 'grimoire'
+            elif token_type == TokenType.CODEX:
+                container_type = 'codex'
+            elif token_type == TokenType.CHRONICLE:
+                container_type = 'chronicle'
+            elif token_type == TokenType.VAULT:
+                container_type = 'vault'
+            else:
+                raise ParseError(self.peek(), f"Unknown container type: {token_type}")
+            
+            elements = []
+            
+            # The lexer stores the content as a string, we need to parse it
+            content = self.previous().literal
+            if content:
+                # Simple parsing of comma-separated values
+                items = [item.strip() for item in content.split(',')]
+                for item in items:
+                    if item:
+                        # Try to parse as number
+                        try:
+                            if '.' in item:
+                                elements.append(LiteralExpression(float(item), TokenType.AETHER))
+                            else:
+                                elements.append(LiteralExpression(int(item), TokenType.SIGIL))
+                        except ValueError:
+                            # Treat as string
+                            elements.append(LiteralExpression(item, TokenType.SCROLL))
+            
+            return ContainerLiteralExpression(container_type, elements)
         
         if self.match(TokenType.IDENTIFIER):
             return IdentifierExpression(self.previous().lexeme)

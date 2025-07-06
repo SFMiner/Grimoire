@@ -56,6 +56,10 @@ class Tome(GrimoireContainer):
         """Iterate over elements"""
         return iter(self._elements)
     
+    def enumerate(self):
+        """Return the number of elements"""
+        return len(self._elements)
+    
     def __getitem__(self, key: Union[int, slice]) -> Any:
         return self._elements[key]
     
