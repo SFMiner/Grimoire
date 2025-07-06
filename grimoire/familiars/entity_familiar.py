@@ -560,13 +560,20 @@ class EntityFamiliar(GrimoireFamiliar):
         """Remove marks (tags) matching the pattern."""
         return self.remove_tag(tag_pattern)
     
-    def has_tag(self, pattern: str) -> bool:
+    def has_tag(self, pattern) -> bool:
         """Check if this familiar has a tag matching the pattern."""
         if TAG_SYSTEM_AVAILABLE and self._tagged_entity:
-            return self._tagged_entity.has_tag(pattern)
+            # Handle both Tag objects and string patterns
+            if hasattr(pattern, 'full_tag'):
+                # It's a Tag object, use its full_tag string
+                pattern_str = pattern.full_tag
+            else:
+                # It's already a string pattern
+                pattern_str = str(pattern)
+            return self._tagged_entity.has_tag(pattern_str)
         return False
     
-    def bears_mark(self, pattern: str) -> bool:
+    def bears_mark(self, pattern) -> bool:
         """Check if this familiar bears a mark (tag) matching the pattern."""
         return self.has_tag(pattern)
     

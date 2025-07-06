@@ -1677,6 +1677,18 @@ class BoundMethod:
         return self.method.call(interpreter, [self.instance] + arguments)
 
 
+@dataclass
+class BoundFamiliarMethod:
+    """Represents a method bound to a familiar."""
+    familiar: GrimoireFamiliar
+    method: Any  # The actual method object
+    method_name: str
+    
+    def call(self, interpreter: 'GrimoireInterpreter', arguments: List[Any]) -> Any:
+        """Execute the bound familiar method."""
+        return self.method(*arguments)
+
+
 class Environment:
     """Manages variable scoping and symbol tables."""
     
@@ -3012,6 +3024,8 @@ class GrimoireInterpreter:
                 return callee.call(self, arguments)
             elif isinstance(callee, BoundMethod):
                 return callee.call(self, arguments)
+            elif isinstance(callee, BoundFamiliarMethod):
+                return callee.call(self, arguments)
             elif callable(callee):  # Built-in function
                 return callee(self, arguments)
             else:
@@ -3023,8 +3037,14 @@ class GrimoireInterpreter:
             if isinstance(obj, GrimoireInstance):
                 return obj.get(expression.property)
             elif isinstance(obj, GrimoireFamiliar):
-                # Handle familiar property access for inquiries
-                return obj.inquire(expression.property)
+                # Check if this is a method call on a familiar
+                if hasattr(obj, expression.property) and callable(getattr(obj, expression.property)):
+                    # Return a bound method for familiar methods
+                    method = getattr(obj, expression.property)
+                    return BoundFamiliarMethod(obj, method, expression.property)
+                else:
+                    # Handle familiar property access for inquiries
+                    return obj.inquire(expression.property)
             else:
                 raise RuntimeError("Only instances and familiars have properties")
         
